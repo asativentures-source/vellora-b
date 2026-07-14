@@ -1,56 +1,99 @@
-import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const Landing = lazy(() => import("@/pages/Landing"));
+const About = lazy(() => import("@/pages/About"));
+const Programs = lazy(() => import("@/pages/Programs"));
+const ProgramDetail = lazy(() => import("@/pages/ProgramDetail"));
+const Doctors = lazy(() => import("@/pages/Doctors"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const Support = lazy(() => import("@/pages/Support"));
+const Assessment = lazy(() => import("@/pages/Assessment"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const PatientDashboard = lazy(() => import("@/pages/PatientDashboard"));
+const DoctorDashboard = lazy(() => import("@/pages/DoctorDashboard"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+function AppRouter() {
+  const location = useLocation();
+  // Handle OAuth session_id in URL fragment BEFORE ProtectedRoute runs
+  if (location.hash?.includes("session_id=")) {
+    return (
+      <Suspense fallback={<div className="min-h-screen" />}>
+        <AuthCallback />
+      </Suspense>
+    );
+  }
 
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+  const isDashboard = ["/patient", "/doctor", "/admin"].some((p) =>
+    location.pathname.startsWith(p)
   );
-};
 
-function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
+    <>
+      {!isDashboard && <Navbar />}
+      <Suspense fallback={<div className="min-h-[60vh]" />}>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<Landing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/programs" element={<Programs />} />
+          <Route path="/programs/:slug" element={<ProgramDetail />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/assessment" element={<Assessment />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
+          <Route
+            path="/patient/*"
+            element={
+              <ProtectedRoute>
+                <PatientDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/doctor/*"
+            element={
+              <ProtectedRoute role="doctor">
+                <DoctorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-      </BrowserRouter>
-    </div>
+      </Suspense>
+      {!isDashboard && <Footer />}
+    </>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <div className="App min-h-screen">
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRouter />
+          <Toaster position="top-right" richColors />
+        </BrowserRouter>
+      </AuthProvider>
+    </div>
+  );
+}

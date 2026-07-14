@@ -1,0 +1,35 @@
+import axios from "axios";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+export const API = `${BACKEND_URL}/api`;
+
+export const api = axios.create({
+  baseURL: API,
+  withCredentials: true,
+});
+
+export const getMe = () => api.get("/auth/me").then(r => r.data);
+export const logout = () => api.post("/auth/logout");
+export const createSession = (session_id) => api.post("/auth/session", { session_id });
+
+export const fetchDoctors = () => api.get("/doctors").then(r => r.data);
+export const fetchPrograms = () => api.get("/programs").then(r => r.data);
+export const fetchPlans = () => api.get("/plans").then(r => r.data);
+export const fetchTestimonials = () => api.get("/testimonials").then(r => r.data);
+export const fetchBlog = (category) => api.get("/blog", { params: category ? { category } : {} }).then(r => r.data);
+export const fetchFaqs = () => api.get("/faqs").then(r => r.data);
+export const fetchStats = () => api.get("/platform-stats").then(r => r.data);
+
+export const fetchPatientDashboard = () => api.get("/patient/dashboard").then(r => r.data);
+export const addCheckin = (data) => api.post("/patient/checkin", data).then(r => r.data);
+export const bookAppointment = (data) => api.post("/patient/appointment", data).then(r => r.data);
+export const addGoal = (data) => api.post("/patient/goal", data).then(r => r.data);
+
+export const fetchDoctorDashboard = () => api.get("/doctor/dashboard").then(r => r.data);
+export const fetchAdminStats = () => api.get("/admin/stats").then(r => r.data);
+export const fetchAdminUsers = () => api.get("/admin/users").then(r => r.data);
+export const fetchAdminAppointments = () => api.get("/admin/appointments").then(r => r.data);
+
+export const aiAssessment = (message, session_id) => api.post("/ai/assessment", { message, session_id }).then(r => r.data);
+export const submitContact = (data) => api.post("/contact", data).then(r => r.data);
+export const subscribeNewsletter = (email) => api.post("/newsletter", { email }).then(r => r.data);
