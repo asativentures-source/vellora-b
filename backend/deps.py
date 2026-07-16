@@ -161,12 +161,15 @@ async def require_fresh_auth(user=Depends(get_current_user)):
     or re-authenticated within FRESH_AUTH_WINDOW_MIN minutes."""
     last_iso = user.get("last_auth_at")
     if not last_iso:
+        logger.warning(f"[fresh-auth] denied user_id={user.get('user_id')} reason=no_last_auth_at")
         raise HTTPException(status_code=401, detail="Please sign in again to change security settings.")
     try:
         last = _to_aware(last_iso)
     except Exception:
+        logger.warning(f"[fresh-auth] denied user_id={user.get('user_id')} reason=bad_timestamp")
         raise HTTPException(status_code=401, detail="Please sign in again to change security settings.")
     if datetime.now(timezone.utc) - last > timedelta(minutes=FRESH_AUTH_WINDOW_MIN):
+        logger.warning(f"[fresh-auth] denied user_id={user.get('user_id')} reason=stale age_seconds={int((datetime.now(timezone.utc) - last).total_seconds())}")
         raise HTTPException(
             status_code=401,
             detail=f"Please sign in again within the last {FRESH_AUTH_WINDOW_MIN} minutes to change security settings.",

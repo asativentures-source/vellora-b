@@ -21,6 +21,15 @@ Premium healthcare website + full multi-role platform for GLP-1 obesity and meta
 - Fonts: Cormorant Garamond (serif marketing) + Manrope (UI/dashboard).
 - Palette: Sage/pine (primary #3B6B56), slate secondary, accent #E8F0EB.
 
+### Feb 2026 — Iteration 5
+- **Fresh-session re-auth guard**: `/auth/add-password` now requires the caller's `last_auth_at` to be within `FRESH_AUTH_WINDOW_MIN` (10 min). `last_auth_at` is stamped on register/login/Google `/auth/session`, **not** on `/auth/refresh` (rotating a token does not extend the fresh window). Stale denials are logged with `[fresh-auth]` for audit. Settings page shows an amber banner + disabled submit + "Re-authenticate →" link when stale.
+- **Backend refactor**: `server.py` shrunk 1066 → 98 lines. New layout:
+  - `deps.py` — db, crypto, JWT, cookies, `get_current_user`, `require_fresh_auth`, role guards
+  - `routers/auth.py` — Google + JWT + settings
+  - `routers/{public,patient,diagnostics,messages,doctor,admin,ai,onboarding,seed}.py`
+  - Seed is now an idempotent `run_seed()` invoked on startup.
+- Testing: **115/115 backend tests** (32+19+18+21+25) + full frontend regression + fresh-auth flows verified (stale rejected, fresh accepted, UI banner + disabled submit). Zero critical bugs.
+
 ### Feb 2026 — Iteration 4
 - **Refresh-token rotation** with server-side jti tracking (`refresh_sessions` collection). Every `/auth/refresh` issues a new access + new refresh token, deletes the old jti, and revokes the entire family if a reused/stolen token is presented (logged as WARNING). TTL index auto-cleans expired jti rows.
 - **Password reset / change** now also revokes all of the user's refresh sessions to force re-login across devices.
