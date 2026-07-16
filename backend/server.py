@@ -248,13 +248,19 @@ async def _check_brute_force(identifier: str):
 
 async def _record_fail(identifier: str):
     now = datetime.now(timezone.utc)
-    doc = await db.login_attempts.find_one({"identifier": identifier}, {"_id": 0}) or {"count": 0}
-    count = int(doc.get("count", 0)) + 1
-    update = {"identifier": identifier, "count": count, "last_at": now.isoformat()}
+    # Atomic increment to avoid race on concurrent failed logins.
+    doc = await db.login_attempts.find_one_and_update(
+        {"identifier": identifier},
+        {"$inc": {"count": 1}, "$set": {"last_at": now.isoformat()}},
+        upsert=True,
+        return_document=True,
+    )
+    count = int((doc or {}).get("count", 1))
     if count >= 5:
-        update["locked_until"] = (now + timedelta(minutes=15)).isoformat()
-        update["count"] = 0  # reset after lock
-    await db.login_attempts.update_one({"identifier": identifier}, {"$set": update}, upsert=True)
+        await db.login_attempts.update_one(
+            {"identifier": identifier},
+            {"$set": {"locked_until": (now + timedelta(minutes=15)).isoformat(), "count": 0}},
+        )
 
 async def _clear_fail(identifier: str):
     await db.login_attempts.delete_one({"identifier": identifier})
@@ -271,8 +277,15 @@ def _issue_tokens_and_set(response: Response, user_id: str, email: str):
 async def register(payload: RegisterRequest, response: Response):
     email = payload.email.lower().strip()
     existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing and existing.get("password_hash"):
-        raise HTTPException(409, "An account with this email already exists. Please sign in.")
+    if existing:
+        if existing.get("password_hash"):
+            raise HTTPException(409, "An account with this email already exists. Please sign in.")
+        # Account exists via Google OAuth but has no password. Refuse to attach a
+        # password from an unverified signup — that would enable account hijack.
+        raise HTTPException(
+            409,
+            "This email is already registered via Google. Please sign in with Google, then add a password from settings.",
+        )
 
     role = "patient"
     if email.startswith("dr.") or "@doctors." in email:
@@ -281,25 +294,17 @@ async def register(payload: RegisterRequest, response: Response):
         role = "admin"
 
     hashed = hash_password(payload.password)
-
-    if existing:  # user had signed in with Google previously; attach a password
-        user_id = existing["user_id"]
-        await db.users.update_one(
-            {"user_id": user_id},
-            {"$set": {"password_hash": hashed, "name": payload.name, "last_login": now_iso()}},
-        )
-    else:
-        user_id = uid("user")
-        await db.users.insert_one({
-            "user_id": user_id,
-            "email": email,
-            "name": payload.name,
-            "picture": "",
-            "role": role,
-            "password_hash": hashed,
-            "created_at": now_iso(),
-            "last_login": now_iso(),
-        })
+    user_id = uid("user")
+    await db.users.insert_one({
+        "user_id": user_id,
+        "email": email,
+        "name": payload.name,
+        "picture": "",
+        "role": role,
+        "password_hash": hashed,
+        "created_at": now_iso(),
+        "last_login": now_iso(),
+    })
 
     _issue_tokens_and_set(response, user_id, email)
     user = await _user_by_id(user_id)

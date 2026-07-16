@@ -21,6 +21,17 @@ Premium healthcare website + full multi-role platform for GLP-1 obesity and meta
 - Fonts: Cormorant Garamond (serif marketing) + Manrope (UI/dashboard).
 - Palette: Sage/pine (primary #3B6B56), slate secondary, accent #E8F0EB.
 
+### Feb 2026 — Iteration 3
+- **JWT email/password authentication** coexisting with Google OAuth. Same `/auth/me` and `/auth/logout` work for both credential types.
+- New endpoints: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/forgot-password`, `/auth/reset-password`. bcrypt(12), httpOnly `access_token` (12h) + `refresh_token` (30d) cookies, secure + samesite=none.
+- Brute-force protection (5 fails / 15 min lockout) via `login_attempts` collection with atomic `$inc`.
+- **Admin owner** `aasati444@gmail.com` / `Verdia@Admin2026` seeded idempotently on startup.
+- Password reset link logged to backend logs (`[PASSWORD RESET]`), rate-limit-friendly.
+- Register refuses to attach a password to an existing Google-only account (prevents hijack).
+- New `/login` page: Google button + divider + Sign-in / Create-account tabs. Navbar and Assessment now route to `/login`.
+- Frontend `formatApiErrorDetail` helper prevents React crashes on 422 validation arrays.
+- Testing: **69/69 backend tests** (32 iter1 + 19 iter2 + 18 iter3) + 10/10 frontend flows passed.
+
 ## Implemented
 ### Feb 2026 — Iteration 1 (MVP)
 - Marketing: Landing, About, Programs list + detail, Doctor directory with search, Pricing with comparison table, Blog list + detail, Support/Contact, Newsletter.
