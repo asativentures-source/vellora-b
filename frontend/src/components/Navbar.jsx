@@ -91,6 +91,9 @@ export default function Navbar() {
                 <DropdownMenuItem onClick={() => nav(dashHref)} data-testid="menu-dashboard">
                   Dashboard
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => nav("/settings")} data-testid="menu-settings">
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => nav("/support")}>Support</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} data-testid="menu-logout">

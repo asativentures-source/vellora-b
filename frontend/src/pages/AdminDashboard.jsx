@@ -13,6 +13,7 @@ const links = [
   { to: "/admin#doctors", label: "Doctors", icon: "ShieldCheck" },
   { to: "/admin#orders", label: "Orders", icon: "ShoppingBag" },
   { to: "/admin#analytics", label: "Analytics", icon: "BarChart3" },
+  { to: "/settings", label: "Settings", icon: "Settings" },
 ];
 
 const analytics = [

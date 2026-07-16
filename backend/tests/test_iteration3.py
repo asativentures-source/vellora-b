@@ -172,7 +172,7 @@ class TestSessionLifecycle:
 
 # -------------------- Forgot / Reset password --------------------
 class TestPasswordReset:
-    def _tail_backend_log(self, n=800):
+    def _tail_backend_log(self, n=4000):
         text = ""
         for path in ("/var/log/supervisor/backend.err.log", "/var/log/supervisor/backend.out.log"):
             try:
@@ -197,12 +197,17 @@ class TestPasswordReset:
         assert r.status_code == 200
         assert r.json().get("ok") is True
 
-        # give the log a moment to flush
-        time.sleep(1)
-        log = self._tail_backend_log(800)
-        m = re.search(rf"\[PASSWORD RESET\] link for {re.escape(email.lower())}: /reset-password\?token=([A-Za-z0-9_\-]+)", log)
-        assert m, "reset token not found in backend logs"
-        token = m.group(1)
+        # give the log a moment to flush; poll for our specific email's line
+        pat = re.compile(rf"\[PASSWORD RESET\] link for {re.escape(email.lower())}: /reset-password\?token=([A-Za-z0-9_\-]+)")
+        token = None
+        for _ in range(20):
+            time.sleep(0.5)
+            log = self._tail_backend_log(6000)
+            m = pat.search(log)
+            if m:
+                token = m.group(1)
+                break
+        assert token, "reset token not found in backend logs"
 
         # invalid token -> 400
         r_bad = requests.post(f"{API}/auth/reset-password", json={"token": "not-a-real-token", "password": "N3wPass!!"})

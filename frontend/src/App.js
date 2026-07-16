@@ -27,6 +27,7 @@ const Messages = lazy(() => import("@/pages/Messages"));
 const DoctorDashboard = lazy(() => import("@/pages/DoctorDashboard"));
 const DoctorNotes = lazy(() => import("@/pages/DoctorNotes"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const Settings = lazy(() => import("@/pages/Settings"));
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -41,7 +42,7 @@ function AppRouter() {
     );
   }
 
-  const isDashboard = ["/patient", "/doctor", "/admin"].some((p) =>
+  const isDashboard = ["/patient", "/doctor", "/admin", "/settings"].some((p) =>
     location.pathname.startsWith(p)
   );
 
@@ -116,6 +117,14 @@ function AppRouter() {
             element={
               <ProtectedRoute role="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

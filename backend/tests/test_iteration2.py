@@ -9,6 +9,16 @@ import requests
 from motor.motor_asyncio import AsyncIOMotorClient
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
+if not BASE_URL:
+    # Fallback: read from /app/frontend/.env
+    try:
+        with open('/app/frontend/.env') as _f:
+            for _line in _f:
+                if _line.startswith('REACT_APP_BACKEND_URL='):
+                    BASE_URL = _line.split('=', 1)[1].strip().strip('"').rstrip('/')
+                    break
+    except FileNotFoundError:
+        pass
 assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
 API = f"{BASE_URL}/api"
 

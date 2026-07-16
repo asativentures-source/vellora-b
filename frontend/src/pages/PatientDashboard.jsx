@@ -19,6 +19,7 @@ const links = [
   { to: "/patient/messages", label: "Messages", icon: "MessageSquare" },
   { to: "/patient#appts", label: "Appointments", icon: "Calendar" },
   { to: "/patient#meds", label: "Medication", icon: "Pill" },
+  { to: "/settings", label: "Settings", icon: "Settings" },
 ];
 
 function MetricCard({ icon: Icon, label, value, delta, trend }) {

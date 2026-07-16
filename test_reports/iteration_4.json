@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 4 (refresh-token rotation + reuse detection + add/change password + security endpoint) fully verified. Backend: 90/90 pytest tests green (32 iter1 regression + 19 iter2 regression + 18 iter3 regression + 21 new iter4). Frontend: /settings page verified end-to-end for BOTH auth paths — admin (has_password: change-password-form works, wrong-current shows toast, mismatch shows local toast, session counters render, sidebar 'Settings' link works) and Google-only user (add-password-form works, submits password, UI flips to change-password-form, sessions counters reflect 1 email/pw + 1 google session).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/test_iteration2.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_iteration4.xml",
+    "/app/test_reports/pytest/pytest_iteration4_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 1061 lines (was 951 in iter3). Still a single-file backend — auth (Google + JWT + reset + brute force + refresh rotation + add/change password + security state), public content, patient CRUD, labs, messaging, doctor notes, admin, AI, and seed are all in one module. Please split into routers.",
+    "In /auth/refresh, when the presented jti is not active (reuse detected), the server correctly mass-revokes but does NOT log the incident. Reuse-detection is a security event; a WARN log line 'refresh token reuse detected for user_id=... jti=...' would be valuable for forensics.",
+    "/auth/add-password sets a password without any confirmation step or email verification. If a stale Google session cookie is compromised (e.g. XSS on a shared machine), the attacker can attach a persistent password. Consider requiring the Google session to have been created within the last N minutes, or send a confirmation email before enabling password auth.",
+    "/auth/security uses `has_google = bool(full.get('picture'))` as a proxy for 'user has a Google auth method'. A patient may have a picture set through some future non-Google flow. Prefer explicit tracking: e.g. an `auth_providers: ['google']` array on the user document.",
+    "Cleaning up refresh_sessions relies solely on hitting /auth/refresh or /auth/logout. Expired refresh tokens accumulate in the collection forever because there's no TTL index. Add a TTL index on `expires_at` (or store it as a native datetime + createIndex expireAfterSeconds=0).",
+    "clear_auth_cookies in /auth/refresh reuse-detection path clears cookies using response.delete_cookie without samesite='none'; secure=True — same footgun as before (some browsers won't accept the clear across-site).",
+    "get_current_user still silently swallows both ExpiredSignatureError and InvalidTokenError on the JWT path and falls back to session_token. An expired access_token should return a distinguishable signal so the frontend calls /auth/refresh instead of masquerading as unauthenticated.",
+    "AddPasswordRequest uses `min_length=8` but there's no server-side password strength check (no digit/special char requirement). Consider a shared password policy.",
+    "/auth/add-password does not require the client to prove the Google session is fresh (e.g. via re-authenticate). Standard practice for security-sensitive setting changes is to require a fresh authentication (last N minutes)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4.py (NEW)",
+    "/app/backend/tests/test_iteration2.py (fallback to /app/frontend/.env for REACT_APP_BACKEND_URL; harness-only)",
+    "/app/backend/tests/test_iteration3.py (larger log-tail + polling for [PASSWORD RESET] regex under parallel worker load; harness-only)"
+  ],
+  "success_rate": {"backend": "100% (90/90 tests across 4 iterations)", "frontend": "100% of tested flows (admin change-password path + Google-only add-password path both end-to-end)"},
+  "test_credentials": "Admin: aasati444@gmail.com / Verdia@Admin2026 (seeded on startup). Fresh test patients registered per test with TEST_ email prefix.",
+  "seed_data_creation": "For UI testing of the Google-only 'Add password' flow, one user row + one user_sessions row were inserted directly into MongoDB (email prefix TEST_UI_GOOG_) and cleaned up after the test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Full regression suite: `pytest backend/tests/ -n auto` runs 90 tests in ~25s. New iter4 file: /app/backend/tests/test_iteration4.py. Key patterns to reuse: (a) motor client MUST be built inside the awaitable, not at module top-level, so `_run(async_fn, *args)` creates a fresh AsyncIOMotorClient inside a fresh event loop per call; (b) The [PASSWORD RESET] log-tail regex must poll (up to ~10s) because under parallel workers the log gets flooded and the line may still be buffered; use tail size 4000-6000 lines. (c) JWT_SECRET is fetched from /app/backend/.env so tests can decode refresh tokens to inspect jti — do NOT rely on env vars being pre-exported. (d) Frontend /settings uses process.env.REACT_APP_BACKEND_URL from /app/frontend/.env; cookies are secure+samesite=none. To test the 'Add password' UI path, insert a users row (no password_hash) + user_sessions row directly into Mongo, then add a `session_token` cookie via playwright context.add_cookies with domain=metabolic-care-4.preview.emergentagent.com, secure=True, sameSite=None.",
+  "rca_of_the_issue": "No functional bugs. Two test-harness issues were fixed in place: (1) test_iteration2.py required env var REACT_APP_BACKEND_URL at import time; added fallback to /app/frontend/.env; (2) test_iteration3.py's [PASSWORD RESET] log regex used a small tail (800 lines) with only 1s sleep — under parallel-worker load with iter4 also writing reset lines, the target line got pushed out; upgraded to polling read of 4000-6000 lines. Neither is a product bug."
+}

@@ -15,6 +15,10 @@ export const emailRegister = (data) => api.post("/auth/register", data).then(r =
 export const emailLogin = (data) => api.post("/auth/login", data).then(r => r.data);
 export const forgotPassword = (email) => api.post("/auth/forgot-password", { email }).then(r => r.data);
 export const resetPassword = (data) => api.post("/auth/reset-password", data).then(r => r.data);
+export const addPassword = (password) => api.post("/auth/add-password", { password }).then(r => r.data);
+export const changePassword = (data) => api.post("/auth/change-password", data).then(r => r.data);
+export const fetchSecurity = () => api.get("/auth/security").then(r => r.data);
+export const refreshTokens = () => api.post("/auth/refresh").then(r => r.data);
 
 export function formatApiErrorDetail(detail) {
   if (detail == null) return "Something went wrong. Please try again.";

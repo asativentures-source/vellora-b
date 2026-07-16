@@ -10,6 +10,7 @@ const links = [
   { to: "/doctor", label: "Overview", icon: "LayoutDashboard" },
   { to: "/doctor/notes", label: "Notes", icon: "MessageSquare" },
   { to: "/doctor/messages", label: "Messages", icon: "MessageSquare" },
+  { to: "/settings", label: "Settings", icon: "Settings" },
 ];
 
 export default function DoctorDashboard() {

@@ -56,13 +56,31 @@ def create_access_token(user_id: str, email: str) -> str:
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(user_id: str, jti: Optional[str] = None) -> tuple[str, str]:
+    """Return (token, jti). Each refresh token carries a unique jti; the jti is
+    tracked server-side in `refresh_sessions` and rotated on every /auth/refresh."""
+    jti = jti or uid("rjti")
     payload = {
         "sub": user_id,
         "type": "refresh",
+        "jti": jti,
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS),
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG), jti
+
+async def _persist_refresh_jti(user_id: str, jti: str):
+    await db.refresh_sessions.insert_one({
+        "jti": jti,
+        "user_id": user_id,
+        "created_at": now_iso(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS)).isoformat(),
+    })
+
+async def _revoke_refresh_jti(jti: str):
+    await db.refresh_sessions.delete_one({"jti": jti})
+
+async def _revoke_all_refresh_for_user(user_id: str):
+    await db.refresh_sessions.delete_many({"user_id": user_id})
 
 def set_auth_cookies(response: Response, access: str, refresh: str):
     common = dict(httponly=True, secure=True, samesite="none", path="/")
@@ -207,9 +225,18 @@ async def me(user=Depends(get_current_user)):
 
 
 @api_router.post("/auth/logout")
-async def logout(response: Response, session_token: Optional[str] = Cookie(default=None)):
+async def logout(request: Request, response: Response, session_token: Optional[str] = Cookie(default=None)):
     if session_token:
         await db.user_sessions.delete_one({"session_token": session_token})
+    rt = request.cookies.get("refresh_token")
+    if rt:
+        try:
+            payload = jwt.decode(rt, JWT_SECRET, algorithms=[JWT_ALG], options={"verify_exp": False})
+            jti = payload.get("jti")
+            if jti:
+                await _revoke_refresh_jti(jti)
+        except jwt.InvalidTokenError:
+            pass
     clear_auth_cookies(response)
     return {"ok": True}
 
@@ -268,9 +295,9 @@ async def _clear_fail(identifier: str):
 
 def _issue_tokens_and_set(response: Response, user_id: str, email: str):
     access = create_access_token(user_id, email)
-    refresh = create_refresh_token(user_id)
+    refresh, jti = create_refresh_token(user_id)
     set_auth_cookies(response, access, refresh)
-    return access, refresh
+    return access, refresh, jti
 
 
 @api_router.post("/auth/register")
@@ -306,7 +333,8 @@ async def register(payload: RegisterRequest, response: Response):
         "last_login": now_iso(),
     })
 
-    _issue_tokens_and_set(response, user_id, email)
+    _, _, jti = _issue_tokens_and_set(response, user_id, email)
+    await _persist_refresh_jti(user_id, jti)
     user = await _user_by_id(user_id)
     return {"user": user}
 
@@ -328,7 +356,8 @@ async def login(payload: LoginRequest, request: Request, response: Response):
 
     await _clear_fail(identifier)
     await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"last_login": now_iso()}})
-    _issue_tokens_and_set(response, user["user_id"], email)
+    _, _, jti = _issue_tokens_and_set(response, user["user_id"], email)
+    await _persist_refresh_jti(user["user_id"], jti)
     safe = await _user_by_id(user["user_id"])
     return {"user": safe}
 
@@ -346,11 +375,29 @@ async def refresh_token_endpoint(request: Request, response: Response):
         raise HTTPException(401, "Invalid refresh token")
     if payload.get("type") != "refresh":
         raise HTTPException(401, "Invalid token type")
-    user = await _user_by_id(payload["sub"])
+
+    old_jti = payload.get("jti")
+    user_id = payload["sub"]
+
+    # Verify the presented jti is still active. If not, this is a reused/stolen
+    # refresh token — revoke ALL of the user's refresh sessions defensively.
+    active = await db.refresh_sessions.find_one({"jti": old_jti, "user_id": user_id})
+    if not active:
+        await _revoke_all_refresh_for_user(user_id)
+        clear_auth_cookies(response)
+        raise HTTPException(401, "Refresh token reused or revoked. Please sign in again.")
+
+    user = await _user_by_id(user_id)
     if not user:
+        await _revoke_refresh_jti(old_jti)
         raise HTTPException(401, "User not found")
-    access = create_access_token(user["user_id"], user["email"])
-    response.set_cookie("access_token", access, max_age=ACCESS_TTL_MIN * 60, httponly=True, secure=True, samesite="none", path="/")
+
+    # Rotate: delete old jti, issue a fresh refresh token with a new jti.
+    await _revoke_refresh_jti(old_jti)
+    new_access = create_access_token(user_id, user["email"])
+    new_refresh, new_jti = create_refresh_token(user_id)
+    await _persist_refresh_jti(user_id, new_jti)
+    set_auth_cookies(response, new_access, new_refresh)
     return {"ok": True}
 
 
@@ -388,7 +435,62 @@ async def reset_password(payload: ResetRequest):
     new_hash = hash_password(payload.password)
     await db.users.update_one({"user_id": rec["user_id"]}, {"$set": {"password_hash": new_hash}})
     await db.password_reset_tokens.update_one({"token": payload.token}, {"$set": {"used": True}})
+    # Revoke all existing refresh sessions on password change to force re-login everywhere.
+    await _revoke_all_refresh_for_user(rec["user_id"])
     return {"ok": True, "message": "Password updated. Please sign in."}
+
+
+class AddPasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=200)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=200)
+
+
+@api_router.post("/auth/add-password")
+async def add_password(payload: AddPasswordRequest, response: Response, user=Depends(get_current_user)):
+    """For users signed in via Google (no password_hash) — attach an email/password
+    credential so they can also sign in with email + password. Requires an active
+    session, so it can only be triggered from the user's own logged-in browser."""
+    full = await db.users.find_one({"user_id": user["user_id"]})
+    if not full:
+        raise HTTPException(404, "User not found")
+    if full.get("password_hash"):
+        raise HTTPException(409, "You already have a password. Use 'Change password' instead.")
+    hashed = hash_password(payload.password)
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"password_hash": hashed}})
+    # Issue a JWT session on top of the existing Google session so email/password login works immediately.
+    _, _, jti = _issue_tokens_and_set(response, user["user_id"], user["email"])
+    await _persist_refresh_jti(user["user_id"], jti)
+    return {"ok": True, "message": "Password set. You can now sign in with email + password."}
+
+
+@api_router.post("/auth/change-password")
+async def change_password(payload: ChangePasswordRequest, user=Depends(get_current_user)):
+    full = await db.users.find_one({"user_id": user["user_id"]})
+    if not full or not full.get("password_hash"):
+        raise HTTPException(400, "No password is set for this account. Use 'Add password' instead.")
+    if not verify_password(payload.current_password, full["password_hash"]):
+        raise HTTPException(401, "Current password is incorrect.")
+    new_hash = hash_password(payload.new_password)
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"password_hash": new_hash}})
+    await _revoke_all_refresh_for_user(user["user_id"])
+    return {"ok": True, "message": "Password changed. Other sessions were signed out."}
+
+
+@api_router.get("/auth/security")
+async def security_state(user=Depends(get_current_user)):
+    """Non-sensitive metadata about the account's auth methods."""
+    full = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    active_sessions = await db.refresh_sessions.count_documents({"user_id": user["user_id"]})
+    google_sessions = await db.user_sessions.count_documents({"user_id": user["user_id"]})
+    return {
+        "has_password": bool(full and full.get("password_hash")),
+        "has_google": bool(full and full.get("picture")),  # Google sign-in populates picture
+        "active_refresh_sessions": active_sessions,
+        "active_google_sessions": google_sessions,
+    }
 
 
 # ---------- Public content ----------
@@ -916,6 +1018,8 @@ async def startup_seed():
         await db.users.create_index("email", unique=True, sparse=True)
         await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
         await db.login_attempts.create_index("identifier", unique=True)
+        await db.refresh_sessions.create_index("jti", unique=True)
+        await db.refresh_sessions.create_index("user_id")
     except Exception as e:
         logger.warning(f"Index creation warning: {e}")
 
