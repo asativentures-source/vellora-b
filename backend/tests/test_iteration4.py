@@ -104,9 +104,13 @@ async def _find_refresh_session(db, jti: str):
 
 
 async def _insert_google_only_user(db, user_id, email, session_token, picture="g"):
+    # last_auth_at=now → satisfies iter5 require_fresh_auth guard on /auth/add-password.
+    from datetime import datetime, timezone
+    now_str = datetime.now(timezone.utc).isoformat()
     await db.users.insert_one({
         "user_id": user_id, "email": email, "name": "TmpGoog", "picture": picture,
         "role": "patient", "created_at": "2026-01-01T00:00:00+00:00",
+        "last_auth_at": now_str,
     })
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,

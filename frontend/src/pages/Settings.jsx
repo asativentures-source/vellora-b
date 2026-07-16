@@ -134,6 +134,19 @@ export default function Settings() {
                 <p className="text-sm text-slate-600 mt-1">
                   You're currently signed in with Google. Adding a password lets you also sign in with email — a useful backup if you ever lose access to your Google account.
                 </p>
+                {!sec.fresh_auth && (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-800" data-testid="fresh-auth-warning">
+                    For your security, please sign in again within the last {sec.fresh_auth_window_min} minutes before setting a password.
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto ml-2 text-amber-900 underline"
+                      onClick={() => { window.location.href = "/login"; }}
+                      data-testid="reauth-link"
+                    >
+                      Re-authenticate →
+                    </Button>
+                  </div>
+                )}
                 <form onSubmit={doAdd} className="mt-4 grid sm:grid-cols-2 gap-3" data-testid="add-password-form">
                   <div>
                     <Label>New password</Label>
@@ -144,7 +157,7 @@ export default function Settings() {
                     <Input type="password" required minLength={8} value={addForm.confirm} onChange={(e)=>setAddForm({...addForm, confirm: e.target.value})} placeholder="Repeat password" autoComplete="new-password" data-testid="add-pw-confirm"/>
                   </div>
                   <div className="sm:col-span-2 flex justify-end">
-                    <Button type="submit" disabled={busy} className="rounded-full bg-primary hover:bg-primary/90" data-testid="add-pw-submit">
+                    <Button type="submit" disabled={busy || !sec.fresh_auth} className="rounded-full bg-primary hover:bg-primary/90" data-testid="add-pw-submit">
                       <KeyRound size={16} className="mr-2"/> {busy ? "Saving…" : "Set password"}
                     </Button>
                   </div>
