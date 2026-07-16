@@ -69,11 +69,14 @@ def create_refresh_token(user_id: str, jti: Optional[str] = None) -> tuple[str, 
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG), jti
 
 async def _persist_refresh_jti(user_id: str, jti: str):
+    exp_dt = datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS)
     await db.refresh_sessions.insert_one({
         "jti": jti,
         "user_id": user_id,
         "created_at": now_iso(),
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS)).isoformat(),
+        # Store as native datetime so the TTL index can auto-expire this document.
+        "expires_at": exp_dt,
+        "expires_at_iso": exp_dt.isoformat(),
     })
 
 async def _revoke_refresh_jti(jti: str):
@@ -383,6 +386,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
     # refresh token — revoke ALL of the user's refresh sessions defensively.
     active = await db.refresh_sessions.find_one({"jti": old_jti, "user_id": user_id})
     if not active:
+        logger.warning(f"Refresh token reuse detected user_id={user_id} jti={old_jti} — revoking all sessions")
         await _revoke_all_refresh_for_user(user_id)
         clear_auth_cookies(response)
         raise HTTPException(401, "Refresh token reused or revoked. Please sign in again.")
@@ -1020,6 +1024,7 @@ async def startup_seed():
         await db.login_attempts.create_index("identifier", unique=True)
         await db.refresh_sessions.create_index("jti", unique=True)
         await db.refresh_sessions.create_index("user_id")
+        await db.refresh_sessions.create_index("expires_at", expireAfterSeconds=0)
     except Exception as e:
         logger.warning(f"Index creation warning: {e}")
 

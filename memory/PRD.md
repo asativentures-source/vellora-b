@@ -21,6 +21,14 @@ Premium healthcare website + full multi-role platform for GLP-1 obesity and meta
 - Fonts: Cormorant Garamond (serif marketing) + Manrope (UI/dashboard).
 - Palette: Sage/pine (primary #3B6B56), slate secondary, accent #E8F0EB.
 
+### Feb 2026 — Iteration 4
+- **Refresh-token rotation** with server-side jti tracking (`refresh_sessions` collection). Every `/auth/refresh` issues a new access + new refresh token, deletes the old jti, and revokes the entire family if a reused/stolen token is presented (logged as WARNING). TTL index auto-cleans expired jti rows.
+- **Password reset / change** now also revokes all of the user's refresh sessions to force re-login across devices.
+- **`/auth/add-password`** endpoint lets Google-only users attach a password (authenticated only, 409 if a password already exists). **`/auth/change-password`** requires the current password.
+- **`/auth/security`** endpoint returns has_password / has_google / active session counts.
+- New **`/settings` page** (protected): Profile card + Security card with Google/Email status pills, contextual Add-password form (Google-only) or Change-password form, and active session counters. Settings links added to Navbar dropdown and all three dashboard sidebars.
+- Testing: **90/90 backend tests** (32+19+18+21) + full frontend flows passed.
+
 ### Feb 2026 — Iteration 3
 - **JWT email/password authentication** coexisting with Google OAuth. Same `/auth/me` and `/auth/logout` work for both credential types.
 - New endpoints: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/forgot-password`, `/auth/reset-password`. bcrypt(12), httpOnly `access_token` (12h) + `refresh_token` (30d) cookies, secure + samesite=none.
