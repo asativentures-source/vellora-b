@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Send, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { GoogleLogo } from "@/components/GoogleLogo";
 
 export default function Assessment() {
   const { user } = useAuth();
@@ -37,9 +36,7 @@ export default function Assessment() {
   };
 
   const login = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/auth-callback";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    window.location.href = "/login";
   };
 
   return (
@@ -76,7 +73,7 @@ export default function Assessment() {
             <div className="font-serif text-2xl">Ready to speak to a clinician?</div>
             <p className="text-slate-600 mt-1 text-sm">Create your Verdia account to save this assessment and book a consultation.</p>
           </div>
-          <Button onClick={login} className="rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm h-11 px-5" data-testid="assessment-signin"><GoogleLogo size={16} className="mr-2"/> Sign in with Google</Button>
+          <Button onClick={login} className="rounded-full bg-primary hover:bg-primary/90 h-11 px-5" data-testid="assessment-signin">Sign in to continue</Button>
         </div>
       )}
     </main>

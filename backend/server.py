@@ -6,9 +6,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import uuid
+import secrets
 import httpx
+import bcrypt
+import jwt
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timezone, timedelta
 
@@ -20,6 +23,10 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+JWT_SECRET = os.environ['JWT_SECRET']
+JWT_ALG = "HS256"
+ACCESS_TTL_MIN = 60 * 12  # 12h so patients don't get logged out mid-visit
+REFRESH_TTL_DAYS = 30
 
 app = FastAPI(title="GLP-1 Care Platform API")
 api_router = APIRouter(prefix="/api")
@@ -31,31 +38,84 @@ def uid(prefix="id"):
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-async def get_current_user(
-    request: Request,
-    session_token: Optional[str] = Cookie(default=None)
-):
-    token = session_token
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt(rounds=12)).decode()
+
+def verify_password(plain: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    except Exception:
+        return False
+
+def create_access_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "type": "access",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TTL_MIN),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+def create_refresh_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "type": "refresh",
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+def set_auth_cookies(response: Response, access: str, refresh: str):
+    common = dict(httponly=True, secure=True, samesite="none", path="/")
+    response.set_cookie("access_token", access, max_age=ACCESS_TTL_MIN * 60, **common)
+    response.set_cookie("refresh_token", refresh, max_age=REFRESH_TTL_DAYS * 86400, **common)
+
+def clear_auth_cookies(response: Response):
+    for name in ("access_token", "refresh_token", "session_token"):
+        response.delete_cookie(name, path="/")
+
+async def _user_by_id(user_id: str):
+    return await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+
+async def get_current_user(request: Request):
+    """Accepts both a JWT access_token (email/password flow) and the opaque
+    session_token (Google OAuth flow). Cookie first, Authorization: Bearer fallback."""
+    # 1) JWT access token
+    token = request.cookies.get("access_token")
     if not token:
         auth = request.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    sess = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
-    if not sess:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    expires_at = sess["expires_at"]
-    if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at)
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=401, detail="Session expired")
-    user = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+    if token:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+            if payload.get("type") == "access":
+                user = await _user_by_id(payload["sub"])
+                if user:
+                    return user
+        except jwt.ExpiredSignatureError:
+            pass
+        except jwt.InvalidTokenError:
+            pass
+
+    # 2) Opaque Google session_token (cookie or Bearer)
+    sess_token = request.cookies.get("session_token")
+    if not sess_token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            sess_token = auth.split(" ", 1)[1]
+    if sess_token:
+        sess = await db.user_sessions.find_one({"session_token": sess_token}, {"_id": 0})
+        if sess:
+            expires_at = sess["expires_at"]
+            if isinstance(expires_at, str):
+                expires_at = datetime.fromisoformat(expires_at)
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at >= datetime.now(timezone.utc):
+                user = await _user_by_id(sess["user_id"])
+                if user:
+                    return user
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 # ---------- Models ----------
 class SessionRequest(BaseModel):
@@ -137,7 +197,7 @@ async def create_session(payload: SessionRequest, response: Response):
         samesite="none",
         path="/",
     )
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return {"user": user, "session_token": session_token}
 
 
@@ -150,8 +210,180 @@ async def me(user=Depends(get_current_user)):
 async def logout(response: Response, session_token: Optional[str] = Cookie(default=None)):
     if session_token:
         await db.user_sessions.delete_one({"session_token": session_token})
-    response.delete_cookie("session_token", path="/")
+    clear_auth_cookies(response)
     return {"ok": True}
+
+
+# ---------- Email / Password Auth ----------
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=200)
+    name: str = Field(min_length=1, max_length=120)
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class ForgotRequest(BaseModel):
+    email: EmailStr
+
+class ResetRequest(BaseModel):
+    token: str
+    password: str = Field(min_length=8, max_length=200)
+
+
+async def _check_brute_force(identifier: str):
+    now = datetime.now(timezone.utc)
+    doc = await db.login_attempts.find_one({"identifier": identifier}, {"_id": 0})
+    if not doc:
+        return
+    if doc.get("locked_until"):
+        lu = doc["locked_until"]
+        if isinstance(lu, str):
+            lu = datetime.fromisoformat(lu)
+        if lu.tzinfo is None:
+            lu = lu.replace(tzinfo=timezone.utc)
+        if lu > now:
+            raise HTTPException(429, "Too many attempts. Try again in a few minutes.")
+
+async def _record_fail(identifier: str):
+    now = datetime.now(timezone.utc)
+    doc = await db.login_attempts.find_one({"identifier": identifier}, {"_id": 0}) or {"count": 0}
+    count = int(doc.get("count", 0)) + 1
+    update = {"identifier": identifier, "count": count, "last_at": now.isoformat()}
+    if count >= 5:
+        update["locked_until"] = (now + timedelta(minutes=15)).isoformat()
+        update["count"] = 0  # reset after lock
+    await db.login_attempts.update_one({"identifier": identifier}, {"$set": update}, upsert=True)
+
+async def _clear_fail(identifier: str):
+    await db.login_attempts.delete_one({"identifier": identifier})
+
+
+def _issue_tokens_and_set(response: Response, user_id: str, email: str):
+    access = create_access_token(user_id, email)
+    refresh = create_refresh_token(user_id)
+    set_auth_cookies(response, access, refresh)
+    return access, refresh
+
+
+@api_router.post("/auth/register")
+async def register(payload: RegisterRequest, response: Response):
+    email = payload.email.lower().strip()
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
+    if existing and existing.get("password_hash"):
+        raise HTTPException(409, "An account with this email already exists. Please sign in.")
+
+    role = "patient"
+    if email.startswith("dr.") or "@doctors." in email:
+        role = "doctor"
+    if await db.users.count_documents({}) == 0:
+        role = "admin"
+
+    hashed = hash_password(payload.password)
+
+    if existing:  # user had signed in with Google previously; attach a password
+        user_id = existing["user_id"]
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {"password_hash": hashed, "name": payload.name, "last_login": now_iso()}},
+        )
+    else:
+        user_id = uid("user")
+        await db.users.insert_one({
+            "user_id": user_id,
+            "email": email,
+            "name": payload.name,
+            "picture": "",
+            "role": role,
+            "password_hash": hashed,
+            "created_at": now_iso(),
+            "last_login": now_iso(),
+        })
+
+    _issue_tokens_and_set(response, user_id, email)
+    user = await _user_by_id(user_id)
+    return {"user": user}
+
+
+@api_router.post("/auth/login")
+async def login(payload: LoginRequest, request: Request, response: Response):
+    email = payload.email.lower().strip()
+    ip = request.client.host if request.client else "unknown"
+    identifier = f"{ip}:{email}"
+    await _check_brute_force(identifier)
+
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("password_hash"):
+        await _record_fail(identifier)
+        raise HTTPException(401, "Invalid email or password.")
+    if not verify_password(payload.password, user["password_hash"]):
+        await _record_fail(identifier)
+        raise HTTPException(401, "Invalid email or password.")
+
+    await _clear_fail(identifier)
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"last_login": now_iso()}})
+    _issue_tokens_and_set(response, user["user_id"], email)
+    safe = await _user_by_id(user["user_id"])
+    return {"user": safe}
+
+
+@api_router.post("/auth/refresh")
+async def refresh_token_endpoint(request: Request, response: Response):
+    rt = request.cookies.get("refresh_token")
+    if not rt:
+        raise HTTPException(401, "No refresh token")
+    try:
+        payload = jwt.decode(rt, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid refresh token")
+    if payload.get("type") != "refresh":
+        raise HTTPException(401, "Invalid token type")
+    user = await _user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(401, "User not found")
+    access = create_access_token(user["user_id"], user["email"])
+    response.set_cookie("access_token", access, max_age=ACCESS_TTL_MIN * 60, httponly=True, secure=True, samesite="none", path="/")
+    return {"ok": True}
+
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(payload: ForgotRequest):
+    email = payload.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Always return the same response to prevent email enumeration
+    if user and user.get("password_hash"):
+        token = secrets.token_urlsafe(32)
+        await db.password_reset_tokens.insert_one({
+            "token": token,
+            "user_id": user["user_id"],
+            "email": email,
+            "used": False,
+            "expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+            "created_at": now_iso(),
+        })
+        logger.info(f"[PASSWORD RESET] link for {email}: /reset-password?token={token}")
+    return {"ok": True, "message": "If an account exists, a reset link was sent."}
+
+
+@api_router.post("/auth/reset-password")
+async def reset_password(payload: ResetRequest):
+    rec = await db.password_reset_tokens.find_one({"token": payload.token, "used": False}, {"_id": 0})
+    if not rec:
+        raise HTTPException(400, "Invalid or expired reset token.")
+    exp = rec["expires_at"]
+    if isinstance(exp, str):
+        exp = datetime.fromisoformat(exp)
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(400, "Reset token has expired.")
+    new_hash = hash_password(payload.password)
+    await db.users.update_one({"user_id": rec["user_id"]}, {"$set": {"password_hash": new_hash}})
+    await db.password_reset_tokens.update_one({"token": payload.token}, {"$set": {"used": True}})
+    return {"ok": True, "message": "Password updated. Please sign in."}
 
 
 # ---------- Public content ----------
@@ -673,6 +905,45 @@ async def startup_seed():
             logger.info("Seed data loaded")
         except Exception as e:
             logger.exception(f"Seed failed: {e}")
+
+    # Ensure indexes for auth
+    try:
+        await db.users.create_index("email", unique=True, sparse=True)
+        await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
+        await db.login_attempts.create_index("identifier", unique=True)
+    except Exception as e:
+        logger.warning(f"Index creation warning: {e}")
+
+    # Admin seed
+    try:
+        admin_email = os.environ.get("ADMIN_EMAIL", "").lower().strip()
+        admin_password = os.environ.get("ADMIN_PASSWORD", "")
+        if admin_email and admin_password:
+            hashed = hash_password(admin_password)
+            existing = await db.users.find_one({"email": admin_email}, {"_id": 0})
+            if not existing:
+                await db.users.insert_one({
+                    "user_id": uid("user"),
+                    "email": admin_email,
+                    "name": "Owner",
+                    "picture": "",
+                    "role": "admin",
+                    "password_hash": hashed,
+                    "created_at": now_iso(),
+                })
+                logger.info(f"Admin user seeded: {admin_email}")
+            else:
+                # Promote to admin if not already; refresh password if it doesn't verify.
+                updates = {}
+                if existing.get("role") != "admin":
+                    updates["role"] = "admin"
+                if not existing.get("password_hash") or not verify_password(admin_password, existing.get("password_hash", "")):
+                    updates["password_hash"] = hashed
+                if updates:
+                    await db.users.update_one({"email": admin_email}, {"$set": updates})
+                    logger.info(f"Admin user updated: {admin_email}")
+    except Exception as e:
+        logger.exception(f"Admin seed failed: {e}")
 
 
 @app.on_event("shutdown")

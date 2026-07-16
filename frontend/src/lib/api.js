@@ -11,6 +11,19 @@ export const api = axios.create({
 export const getMe = () => api.get("/auth/me").then(r => r.data);
 export const logout = () => api.post("/auth/logout");
 export const createSession = (session_id) => api.post("/auth/session", { session_id });
+export const emailRegister = (data) => api.post("/auth/register", data).then(r => r.data);
+export const emailLogin = (data) => api.post("/auth/login", data).then(r => r.data);
+export const forgotPassword = (email) => api.post("/auth/forgot-password", { email }).then(r => r.data);
+export const resetPassword = (data) => api.post("/auth/reset-password", data).then(r => r.data);
+
+export function formatApiErrorDetail(detail) {
+  if (detail == null) return "Something went wrong. Please try again.";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail.map((e) => (e && typeof e.msg === "string" ? e.msg : JSON.stringify(e))).filter(Boolean).join(" ");
+  if (detail && typeof detail.msg === "string") return detail.msg;
+  return String(detail);
+}
 
 export const fetchDoctors = () => api.get("/doctors").then(r => r.data);
 export const fetchPrograms = () => api.get("/programs").then(r => r.data);

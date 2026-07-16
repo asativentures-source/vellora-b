@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { GoogleLogo } from "@/components/GoogleLogo";
 
 const links = [
   { to: "/programs", label: "Programs" },
@@ -31,9 +30,7 @@ export default function Navbar() {
     user?.role === "admin" ? "/admin" : user?.role === "doctor" ? "/doctor" : "/patient";
 
   const login = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/auth-callback";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    nav("/login");
   };
 
   return (
@@ -104,10 +101,10 @@ export default function Navbar() {
           ) : (
             <Button
               onClick={login}
-              className="rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm h-10 pl-3 pr-4"
+              className="rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm h-10 px-4"
               data-testid="nav-login-btn"
             >
-              <GoogleLogo size={16} className="mr-2"/> Sign in with Google
+              Sign in
             </Button>
           )}
         </div>
@@ -143,7 +140,7 @@ export default function Navbar() {
                 </Button>
               ) : (
                 <Button className="rounded-full flex-1 bg-white border border-border/70 text-slate-800 shadow-sm" onClick={login}>
-                  <GoogleLogo size={16} className="mr-2"/> Sign in with Google
+                  Sign in
                 </Button>
               )}
             </div>

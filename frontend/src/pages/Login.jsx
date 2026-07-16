@@ -1,14 +1,24 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoogleLogo } from "@/components/GoogleLogo";
-import { ShieldCheck, Lock } from "lucide-react";
+import { ShieldCheck, Lock, Mail } from "lucide-react";
+import { emailLogin, emailRegister, forgotPassword, formatApiErrorDetail } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function Login() {
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const nav = useNavigate();
+  const [mode, setMode] = useState("signin");
+  const [busy, setBusy] = useState(false);
+  const [signInForm, setSignInForm] = useState({ email: "", password: "" });
+  const [signUpForm, setSignUpForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!loading && user) {
@@ -23,33 +33,126 @@ export default function Login() {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
+  const doSignIn = async (e) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const { user } = await emailLogin(signInForm);
+      toast.success(`Welcome back, ${user.name?.split(" ")[0] || ""}`);
+      await refresh();
+      const to = user.role === "admin" ? "/admin" : user.role === "doctor" ? "/doctor" : "/patient";
+      nav(to, { replace: true });
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+    }
+    setBusy(false);
+  };
+
+  const doSignUp = async (e) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const { user } = await emailRegister(signUpForm);
+      toast.success(`Welcome to Verdia, ${user.name?.split(" ")[0] || ""}`);
+      await refresh();
+      nav("/patient", { replace: true });
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+    }
+    setBusy(false);
+  };
+
+  const doForgot = async () => {
+    if (!signInForm.email) { toast.error("Enter your email above first."); return; }
+    try {
+      await forgotPassword(signInForm.email);
+      toast.success("If an account exists, we've sent a reset link.");
+    } catch { toast.error("Please try again."); }
+  };
+
   return (
-    <main className="max-w-md mx-auto px-6 pt-20 pb-24" data-testid="login-page">
+    <main className="max-w-md mx-auto px-6 pt-16 pb-24" data-testid="login-page">
       <Card className="rounded-3xl border-border/60 soft-shadow">
-        <CardContent className="p-10">
+        <CardContent className="p-8">
           <div className="text-xs uppercase tracking-widest text-slate-500">Welcome</div>
           <h1 className="font-serif text-4xl mt-2">Sign in to Verdia</h1>
-          <p className="text-slate-600 mt-3">Use your Google account to access your dashboard, consultations, labs, and messages.</p>
+          <p className="text-slate-600 mt-2 text-sm">Access your dashboard, consultations, labs, and messages.</p>
 
           <Button
             onClick={google}
-            className="mt-8 w-full h-12 rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm"
+            className="mt-6 w-full h-11 rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm"
             data-testid="google-signin-btn"
           >
-            <GoogleLogo size={20} className="mr-2"/> Continue with Google
+            <GoogleLogo size={18} className="mr-2"/> Continue with Google
           </Button>
 
-          <div className="mt-6 space-y-2 text-xs text-slate-500">
-            <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary"/> HIPAA-aware infrastructure</div>
-            <div className="flex items-center gap-2"><Lock size={14} className="text-primary"/> Session encrypted, signed out in 7 days by default</div>
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-border/60"/>
+            <span className="text-xs uppercase tracking-widest text-slate-400">or with email</span>
+            <div className="flex-1 h-px bg-border/60"/>
           </div>
 
-          <p className="mt-8 text-xs text-slate-400 leading-relaxed">
-            By continuing you agree to our Terms of Service and acknowledge our Privacy Policy.
-            First-time users will be onboarded to the patient dashboard automatically.
-          </p>
+          <Tabs value={mode} onValueChange={(v)=>{ setMode(v); setError(""); }}>
+            <TabsList className="grid grid-cols-2 rounded-full bg-accent/60">
+              <TabsTrigger value="signin" className="rounded-full" data-testid="tab-signin">Sign in</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-full" data-testid="tab-signup">Create account</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="signin" className="mt-5">
+              <form onSubmit={doSignIn} className="space-y-3" data-testid="email-signin-form">
+                <div>
+                  <Label htmlFor="si-email">Email</Label>
+                  <Input id="si-email" type="email" required value={signInForm.email} onChange={(e)=>setSignInForm({...signInForm, email: e.target.value})} placeholder="you@example.com" autoComplete="email" data-testid="signin-email"/>
+                </div>
+                <div>
+                  <Label htmlFor="si-pw">Password</Label>
+                  <Input id="si-pw" type="password" required value={signInForm.password} onChange={(e)=>setSignInForm({...signInForm, password: e.target.value})} placeholder="••••••••" autoComplete="current-password" data-testid="signin-password"/>
+                </div>
+                {error && <div className="text-xs text-red-600" data-testid="signin-error">{error}</div>}
+                <div className="flex items-center justify-between">
+                  <button type="button" onClick={doForgot} className="text-xs text-primary hover:underline" data-testid="forgot-password-link">Forgot password?</button>
+                </div>
+                <Button type="submit" disabled={busy} className="w-full rounded-full bg-primary hover:bg-primary/90" data-testid="signin-submit">
+                  <Mail size={16} className="mr-2"/> {busy ? "Signing in…" : "Sign in with Email"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="mt-5">
+              <form onSubmit={doSignUp} className="space-y-3" data-testid="email-signup-form">
+                <div>
+                  <Label htmlFor="su-name">Full name</Label>
+                  <Input id="su-name" required value={signUpForm.name} onChange={(e)=>setSignUpForm({...signUpForm, name: e.target.value})} placeholder="Alex Morgan" autoComplete="name" data-testid="signup-name"/>
+                </div>
+                <div>
+                  <Label htmlFor="su-email">Email</Label>
+                  <Input id="su-email" type="email" required value={signUpForm.email} onChange={(e)=>setSignUpForm({...signUpForm, email: e.target.value})} placeholder="you@example.com" autoComplete="email" data-testid="signup-email"/>
+                </div>
+                <div>
+                  <Label htmlFor="su-pw">Password</Label>
+                  <Input id="su-pw" type="password" required minLength={8} value={signUpForm.password} onChange={(e)=>setSignUpForm({...signUpForm, password: e.target.value})} placeholder="At least 8 characters" autoComplete="new-password" data-testid="signup-password"/>
+                </div>
+                {error && <div className="text-xs text-red-600" data-testid="signup-error">{error}</div>}
+                <Button type="submit" disabled={busy} className="w-full rounded-full bg-primary hover:bg-primary/90" data-testid="signup-submit">
+                  {busy ? "Creating account…" : "Create account"}
+                </Button>
+                <p className="text-xs text-slate-500">Doctors, please email us to be onboarded with clinician credentials.</p>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="mt-6 space-y-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-2"><ShieldCheck size={13} className="text-primary"/> HIPAA-aware infrastructure</div>
+            <div className="flex items-center gap-2"><Lock size={13} className="text-primary"/> Session encrypted; sign-in expires in 12 hours</div>
+          </div>
         </CardContent>
       </Card>
+
+      <p className="text-center text-xs text-slate-400 mt-6">
+        Need help? <Link to="/support" className="text-primary hover:underline">Contact support</Link>
+      </p>
     </main>
   );
 }
