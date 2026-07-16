@@ -278,6 +278,148 @@ async def add_goal(g: GoalCreate, user=Depends(get_current_user)):
     return doc
 
 
+# ---------- Diagnostics / Labs ----------
+@api_router.get("/lab-tests")
+async def list_lab_tests():
+    return await db.lab_tests.find({}, {"_id": 0}).to_list(100)
+
+class LabOrderCreate(BaseModel):
+    test_code: str
+    collection_type: str = "home"  # "home" or "lab"
+    scheduled_at: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.post("/patient/lab-order")
+async def create_lab_order(o: LabOrderCreate, user=Depends(get_current_user)):
+    test = await db.lab_tests.find_one({"code": o.test_code}, {"_id": 0})
+    if not test:
+        raise HTTPException(404, "Test not found")
+    doc = {
+        "id": uid("lab"),
+        "user_id": user["user_id"],
+        "patient_name": user["name"],
+        "test_code": o.test_code,
+        "test_name": test["name"],
+        "collection_type": o.collection_type,
+        "scheduled_at": o.scheduled_at,
+        "address": o.address,
+        "notes": o.notes,
+        "status": "scheduled",
+        "price": test["price"],
+        "created_at": now_iso(),
+    }
+    await db.lab_orders.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/patient/lab-orders")
+async def list_lab_orders(user=Depends(get_current_user)):
+    return await db.lab_orders.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+class LabReportCreate(BaseModel):
+    title: str
+    test_code: Optional[str] = None
+    values: Dict[str, float] = Field(default_factory=dict)  # {"HbA1c": 6.1, ...}
+    units: Dict[str, str] = Field(default_factory=dict)
+    file_name: Optional[str] = None
+    file_data: Optional[str] = None  # base64
+    notes: Optional[str] = None
+    collected_at: Optional[str] = None
+
+@api_router.post("/patient/lab-report")
+async def upload_lab_report(r: LabReportCreate, user=Depends(get_current_user)):
+    if r.file_data and len(r.file_data) > 2_500_000:
+        raise HTTPException(413, "File too large (max ~2MB)")
+    doc = r.model_dump()
+    doc.update({
+        "id": uid("rep"),
+        "user_id": user["user_id"],
+        "reviewed": False,
+        "doctor_comment": None,
+        "created_at": now_iso(),
+        "collected_at": r.collected_at or now_iso(),
+    })
+    await db.lab_reports.insert_one(doc)
+    doc.pop("_id", None)
+    doc.pop("file_data", None)  # don't return blob
+    return doc
+
+@api_router.get("/patient/lab-reports")
+async def list_lab_reports(user=Depends(get_current_user)):
+    docs = await db.lab_reports.find({"user_id": user["user_id"]}, {"_id": 0, "file_data": 0}).sort("collected_at", 1).to_list(200)
+    return docs
+
+
+# ---------- Messaging ----------
+class MessageCreate(BaseModel):
+    to_user_id: str
+    body: str
+
+@api_router.post("/messages")
+async def send_message(m: MessageCreate, user=Depends(get_current_user)):
+    recipient = await db.users.find_one({"user_id": m.to_user_id}, {"_id": 0})
+    if not recipient:
+        raise HTTPException(404, "Recipient not found")
+    # Thread id is deterministic between two users
+    thread_id = "thr_" + "_".join(sorted([user["user_id"], m.to_user_id]))
+    doc = {
+        "id": uid("msg"),
+        "thread_id": thread_id,
+        "from_user_id": user["user_id"],
+        "from_name": user["name"],
+        "from_role": user.get("role", "patient"),
+        "to_user_id": m.to_user_id,
+        "to_name": recipient["name"],
+        "body": m.body,
+        "read": False,
+        "created_at": now_iso(),
+    }
+    await db.messages.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/messages/thread")
+async def get_thread(with_user_id: str, user=Depends(get_current_user)):
+    thread_id = "thr_" + "_".join(sorted([user["user_id"], with_user_id]))
+    docs = await db.messages.find({"thread_id": thread_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    # mark as read
+    await db.messages.update_many({"thread_id": thread_id, "to_user_id": user["user_id"], "read": False}, {"$set": {"read": True}})
+    return docs
+
+@api_router.get("/messages/threads")
+async def list_threads(user=Depends(get_current_user)):
+    # Aggregate distinct threads user is part of
+    pipeline = [
+        {"$match": {"$or": [{"from_user_id": user["user_id"]}, {"to_user_id": user["user_id"]}]}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": "$thread_id",
+            "last_message": {"$first": "$body"},
+            "last_at": {"$first": "$created_at"},
+            "from_name": {"$first": "$from_name"},
+            "to_name": {"$first": "$to_name"},
+            "from_user_id": {"$first": "$from_user_id"},
+            "to_user_id": {"$first": "$to_user_id"},
+        }},
+        {"$sort": {"last_at": -1}},
+    ]
+    out = []
+    async for row in db.messages.aggregate(pipeline):
+        other_id = row["to_user_id"] if row["from_user_id"] == user["user_id"] else row["from_user_id"]
+        other_name = row["to_name"] if row["from_user_id"] == user["user_id"] else row["from_name"]
+        unread = await db.messages.count_documents({"thread_id": row["_id"], "to_user_id": user["user_id"], "read": False})
+        out.append({
+            "thread_id": row["_id"],
+            "other_user_id": other_id,
+            "other_name": other_name,
+            "last_message": row["last_message"],
+            "last_at": row["last_at"],
+            "unread": unread,
+        })
+    return out
+
+
 # ---------- Doctor ----------
 @api_router.get("/doctor/dashboard")
 async def doctor_dashboard(user=Depends(get_current_user)):
@@ -289,6 +431,83 @@ async def doctor_dashboard(user=Depends(get_current_user)):
         appts = await db.appointments.find({}, {"_id": 0}).sort("scheduled_at", 1).to_list(50)
     patients = await db.users.find({"role": "patient"}, {"_id": 0}).to_list(100)
     return {"appointments": appts, "patients": patients}
+
+class ConsultationNoteCreate(BaseModel):
+    patient_id: str
+    subjective: Optional[str] = None
+    objective: Optional[str] = None
+    assessment: Optional[str] = None
+    plan: Optional[str] = None
+    follow_up_at: Optional[str] = None
+
+@api_router.post("/doctor/note")
+async def create_note(n: ConsultationNoteCreate, user=Depends(get_current_user)):
+    if user.get("role") not in ("doctor", "admin"):
+        raise HTTPException(403, "Doctor only")
+    patient = await db.users.find_one({"user_id": n.patient_id}, {"_id": 0})
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+    doc = n.model_dump()
+    doc.update({
+        "id": uid("note"),
+        "doctor_id": user["user_id"],
+        "doctor_name": user["name"],
+        "patient_name": patient["name"],
+        "created_at": now_iso(),
+    })
+    await db.consultation_notes.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/doctor/notes")
+async def list_notes(patient_id: Optional[str] = None, user=Depends(get_current_user)):
+    if user.get("role") not in ("doctor", "admin"):
+        raise HTTPException(403, "Doctor only")
+    q = {"doctor_id": user["user_id"]}
+    if patient_id:
+        q = {"patient_id": patient_id}
+    return await db.consultation_notes.find(q, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.get("/doctor/lab-reports")
+async def doctor_view_labs(patient_id: Optional[str] = None, user=Depends(get_current_user)):
+    if user.get("role") not in ("doctor", "admin"):
+        raise HTTPException(403, "Doctor only")
+    q = {"user_id": patient_id} if patient_id else {}
+    return await db.lab_reports.find(q, {"_id": 0, "file_data": 0}).sort("collected_at", -1).to_list(300)
+
+
+# ---------- Onboarding ----------
+class OnboardingSubmit(BaseModel):
+    goal: str
+    conditions: List[str] = []
+    weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    age: Optional[int] = None
+    sex: Optional[str] = None
+    medications: Optional[str] = None
+    lifestyle: Optional[str] = None
+    preferred_program: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+
+@api_router.post("/onboarding")
+async def submit_onboarding(o: OnboardingSubmit):
+    bmi = None
+    if o.weight_kg and o.height_cm and o.height_cm > 0:
+        bmi = round(o.weight_kg / ((o.height_cm / 100) ** 2), 1)
+    doc = o.model_dump()
+    doc.update({"id": uid("onb"), "bmi": bmi, "created_at": now_iso()})
+    await db.onboarding_submissions.insert_one(doc)
+    doc.pop("_id", None)
+    # Recommendation
+    rec = "weight-loss"
+    if "diabetes" in [c.lower() for c in o.conditions]:
+        rec = "diabetes"
+    elif "pcos" in [c.lower() for c in o.conditions]:
+        rec = "pcos"
+    elif "metabolic" in [c.lower() for c in o.conditions]:
+        rec = "metabolic"
+    return {"submission": doc, "recommended_program": rec, "bmi": bmi}
 
 
 # ---------- Admin ----------
@@ -403,6 +622,16 @@ async def seed():
         {"q": "Do you support PCOS and diabetes together?", "a": "Yes. Our clinicians address the metabolic root causes across conditions."},
     ]
     await db.faqs.insert_many(faqs)
+
+    lab_tests = [
+        {"code": "hba1c", "name": "HbA1c", "description": "Average blood glucose over 3 months.", "sample": "Blood", "price": 29, "turnaround": "24 hours", "markers": ["HbA1c"], "unit": "%"},
+        {"code": "lipid", "name": "Lipid Panel", "description": "Cholesterol, LDL, HDL, triglycerides.", "sample": "Blood", "price": 39, "turnaround": "24 hours", "markers": ["Total Cholesterol", "LDL", "HDL", "Triglycerides"], "unit": "mg/dL"},
+        {"code": "fasting-insulin", "name": "Fasting Insulin + HOMA-IR", "description": "Insulin resistance screening.", "sample": "Blood (fasting)", "price": 49, "turnaround": "48 hours", "markers": ["Fasting Insulin", "Glucose", "HOMA-IR"], "unit": "µIU/mL"},
+        {"code": "thyroid", "name": "Thyroid Panel", "description": "TSH, Free T3, Free T4.", "sample": "Blood", "price": 45, "turnaround": "24 hours", "markers": ["TSH", "Free T3", "Free T4"], "unit": "mIU/L"},
+        {"code": "pcos-hormones", "name": "PCOS Hormone Panel", "description": "LH, FSH, testosterone, SHBG, AMH.", "sample": "Blood", "price": 69, "turnaround": "72 hours", "markers": ["LH", "FSH", "Testosterone", "SHBG", "AMH"], "unit": "varies"},
+        {"code": "metabolic-panel", "name": "Comprehensive Metabolic Panel", "description": "Kidney, liver, glucose, electrolytes.", "sample": "Blood", "price": 55, "turnaround": "24 hours", "markers": ["Glucose", "Creatinine", "ALT", "AST"], "unit": "varies"},
+    ]
+    await db.lab_tests.insert_many(lab_tests)
 
     await db.platform_stats.insert_one({
         "patients_served": 42800,

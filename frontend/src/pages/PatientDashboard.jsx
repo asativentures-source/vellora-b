@@ -15,11 +15,10 @@ import { toast } from "sonner";
 
 const links = [
   { to: "/patient", label: "Overview", icon: "LayoutDashboard" },
-  { to: "/patient#progress", label: "Progress", icon: "HeartPulse" },
+  { to: "/patient/labs", label: "Labs", icon: "FlaskConical" },
+  { to: "/patient/messages", label: "Messages", icon: "MessageSquare" },
   { to: "/patient#appts", label: "Appointments", icon: "Calendar" },
   { to: "/patient#meds", label: "Medication", icon: "Pill" },
-  { to: "/patient#labs", label: "Labs", icon: "FlaskConical" },
-  { to: "/patient#messages", label: "Messages", icon: "MessageSquare" },
 ];
 
 function MetricCard({ icon: Icon, label, value, delta, trend }) {

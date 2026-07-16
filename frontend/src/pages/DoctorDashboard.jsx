@@ -8,9 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const links = [
   { to: "/doctor", label: "Overview", icon: "LayoutDashboard" },
-  { to: "/doctor#appts", label: "Appointments", icon: "Calendar" },
-  { to: "/doctor#patients", label: "Patients", icon: "Users" },
-  { to: "/doctor#messages", label: "Messages", icon: "MessageSquare" },
+  { to: "/doctor/notes", label: "Notes", icon: "MessageSquare" },
+  { to: "/doctor/messages", label: "Messages", icon: "MessageSquare" },
 ];
 
 export default function DoctorDashboard() {

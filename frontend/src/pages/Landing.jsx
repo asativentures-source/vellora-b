@@ -303,7 +303,7 @@ export default function Landing() {
           <div className="max-w-2xl">
             <h2 className="font-serif text-4xl md:text-5xl">Your best chapter starts with a five-minute conversation.</h2>
             <p className="mt-4 text-white/70">Speak with a Verdia clinician about GLP-1, PCOS, diabetes, or metabolic health.</p>
-            <Link to="/assessment">
+            <Link to="/onboarding">
               <Button className="mt-8 rounded-full bg-emerald-400 hover:bg-emerald-300 text-slate-900 h-12 px-7" data-testid="cta-start-assessment">
                 Start free assessment <ArrowRight size={18} className="ml-1"/>
               </Button>

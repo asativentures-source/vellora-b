@@ -64,10 +64,10 @@ export default function Navbar() {
           <Button
             variant="ghost"
             className="rounded-full text-slate-700"
-            onClick={() => nav("/assessment")}
+            onClick={() => nav("/onboarding")}
             data-testid="nav-assessment-btn"
           >
-            Free Assessment
+            Get started
           </Button>
           {user ? (
             <DropdownMenu>
@@ -132,9 +132,9 @@ export default function Navbar() {
               <Button
                 variant="outline"
                 className="rounded-full flex-1"
-                onClick={() => { setOpen(false); nav("/assessment"); }}
+                onClick={() => { setOpen(false); nav("/onboarding"); }}
               >
-                Assessment
+                Get started
               </Button>
               {user ? (
                 <Button className="rounded-full flex-1 bg-primary" onClick={() => { setOpen(false); nav(dashHref); }}>
