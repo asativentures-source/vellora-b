@@ -19,6 +19,7 @@ const BlogPost = lazy(() => import("@/pages/BlogPost"));
 const Support = lazy(() => import("@/pages/Support"));
 const Assessment = lazy(() => import("@/pages/Assessment"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const Login = lazy(() => import("@/pages/Login"));
 const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 const PatientDashboard = lazy(() => import("@/pages/PatientDashboard"));
 const PatientLabs = lazy(() => import("@/pages/PatientLabs"));
@@ -60,6 +61,7 @@ function AppRouter() {
           <Route path="/support" element={<Support />} />
           <Route path="/assessment" element={<Assessment />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/auth-callback" element={<AuthCallback />} />
           <Route
             path="/patient"

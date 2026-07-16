@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GoogleLogo } from "@/components/GoogleLogo";
 
 const links = [
   { to: "/programs", label: "Programs" },
@@ -103,10 +104,10 @@ export default function Navbar() {
           ) : (
             <Button
               onClick={login}
-              className="rounded-full bg-primary hover:bg-primary/90"
+              className="rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm h-10 pl-3 pr-4"
               data-testid="nav-login-btn"
             >
-              Sign in
+              <GoogleLogo size={16} className="mr-2"/> Sign in with Google
             </Button>
           )}
         </div>
@@ -141,7 +142,9 @@ export default function Navbar() {
                   Dashboard
                 </Button>
               ) : (
-                <Button className="rounded-full flex-1 bg-primary" onClick={login}>Sign in</Button>
+                <Button className="rounded-full flex-1 bg-white border border-border/70 text-slate-800 shadow-sm" onClick={login}>
+                  <GoogleLogo size={16} className="mr-2"/> Sign in with Google
+                </Button>
               )}
             </div>
           </div>

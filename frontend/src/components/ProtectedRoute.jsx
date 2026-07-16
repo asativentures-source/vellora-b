@@ -10,7 +10,7 @@ export default function ProtectedRoute({ children, role }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role && user.role !== "admin") {
     return <Navigate to="/patient" replace />;
   }
