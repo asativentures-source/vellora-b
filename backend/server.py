@@ -9,7 +9,7 @@ import uuid
 import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = Path(__file__).parent
@@ -320,7 +320,7 @@ async def list_lab_orders(user=Depends(get_current_user)):
 class LabReportCreate(BaseModel):
     title: str
     test_code: Optional[str] = None
-    values: Dict[str, float] = Field(default_factory=dict)  # {"HbA1c": 6.1, ...}
+    values: Dict[str, Union[float, str]] = Field(default_factory=dict)  # {"HbA1c": 6.1, ...}
     units: Dict[str, str] = Field(default_factory=dict)
     file_name: Optional[str] = None
     file_data: Optional[str] = None  # base64
@@ -500,13 +500,15 @@ async def submit_onboarding(o: OnboardingSubmit):
     await db.onboarding_submissions.insert_one(doc)
     doc.pop("_id", None)
     # Recommendation
-    rec = "weight-loss"
-    if "diabetes" in [c.lower() for c in o.conditions]:
-        rec = "diabetes"
-    elif "pcos" in [c.lower() for c in o.conditions]:
+    conds = [c.lower() for c in o.conditions]
+    if "pcos" in conds:
         rec = "pcos"
-    elif "metabolic" in [c.lower() for c in o.conditions]:
+    elif "diabetes" in " ".join(conds):
+        rec = "diabetes"
+    elif any("metabolic" in c for c in conds):
         rec = "metabolic"
+    else:
+        rec = "weight-loss"
     return {"submission": doc, "recommended_program": rec, "bmi": bmi}
 
 

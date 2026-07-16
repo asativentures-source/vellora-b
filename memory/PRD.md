@@ -21,31 +21,36 @@ Premium healthcare website + full multi-role platform for GLP-1 obesity and meta
 - Fonts: Cormorant Garamond (serif marketing) + Manrope (UI/dashboard).
 - Palette: Sage/pine (primary #3B6B56), slate secondary, accent #E8F0EB.
 
-## Implemented (Feb 2026)
-- Marketing: Landing (hero + animated stats + how-it-works + benefits + why-us + featured doctors + testimonials + pricing preview + FAQ + CTA + footer), About, Programs list + detail, Doctor directory with search, Pricing with comparison table, Blog list with category filter + detail, Support/Contact form, Newsletter.
-- Auth: Emergent Google OAuth via `/auth/session`, `/auth/me`, `/auth/logout`, httpOnly cookie, protected routes with role gating.
-- AI Assessment: Aria conversational intake (Claude Sonnet 4.5), session-scoped memory.
-- Patient Dashboard: Health metric cards, weight progress chart (Recharts), daily check-in dialog, appointment booking dialog, goal creation, medication schedule stub, weekly plate.
-- Doctor Dashboard: Today's schedule, active patients list, note counters.
-- Admin Dashboard: Platform metrics, sign-up chart, users list, appointments list.
-- Public content API: doctors, programs, plans, testimonials, blog, faqs, platform-stats, contact, newsletter.
+## Implemented
+### Feb 2026 — Iteration 1 (MVP)
+- Marketing: Landing, About, Programs list + detail, Doctor directory with search, Pricing with comparison table, Blog list + detail, Support/Contact, Newsletter.
+- Auth: Emergent Google OAuth (`/auth/session`, `/auth/me`, `/auth/logout`), role gating (patient/doctor/admin).
+- AI Assessment page: Aria conversational intake (Claude Sonnet 4.5).
+- Patient Dashboard: metric cards, weight chart, check-in, appointment booking, goals.
+- Doctor Dashboard: schedule, patient list.
+- Admin Dashboard: platform metrics, sign-ups chart, users, appointments.
 - Seed script runs on backend startup.
-- Full test coverage: 32/32 backend tests passing; all frontend flows verified.
+
+### Feb 2026 — Iteration 2
+- **Diagnostics module**: `/api/lab-tests` catalog (6 seeded), `/api/patient/lab-order` booking, `/api/patient/lab-report` upload (base64 file + parsed marker values), marker trend charts (Recharts). Doctor-side view via `/api/doctor/lab-reports`.
+- **Messaging**: deterministic thread IDs, `POST /api/messages`, `/messages/thread`, `/messages/threads` with unread counts. Shared Messages page for patient & doctor with real-time thread + auto-mark-read.
+- **Doctor SOAP notes**: `/api/doctor/note` create + list, follow-up datetime, patient labs viewer in Notes page.
+- **Multi-step onboarding wizard** (`/onboarding`): 5 steps (goal → conditions → vitals → medications/lifestyle → contact); returns BMI + recommended program (PCOS wins on overlap).
+- **Cookie consent** banner (localStorage `verdia_cookie_consent_v1`).
+- **Live chat widget** (Aria) — FAB on all marketing pages, hidden on dashboards.
+- Testing: 51/51 backend tests + full frontend flows passed.
 
 ## Backlog (P0/P1/P2)
-- P0: Stripe checkout for subscriptions (currently display-only).
-- P0: Real prescription management + medication ordering + delivery tracking on Patient/Doctor dashboards.
-- P1: Multi-step visitor onboarding wizard (currently AI chat only).
-- P1: Diagnostics module (book lab tests, upload/view lab reports, trend charts).
-- P1: In-platform messaging between patient ↔ doctor.
-- P1: Doctor consultation notes + follow-up scheduling.
-- P2: Live chat support widget, ticket tracking.
-- P2: Content management for admin (blog authoring, program editing).
+- P0: Stripe checkout for subscriptions.
+- P0: Real medication ordering + delivery tracking.
+- P1: Doctor consultation note templates + reusable phrases.
+- P1: In-message file attachments; typing indicators.
+- P1: Lab report OCR (auto-extract values).
+- P2: Admin content management for blog + programs.
 - P2: Notifications & achievements gamification.
-- P2: Cookie-consent banner, WCAG audit, App download CTA blocks.
+- P2: WCAG audit + app download blocks.
 
 ## Next Tasks
-1. Wire Stripe checkout for plans and start subscription lifecycle.
-2. Build diagnostics upload + lab review workflow.
-3. Add patient ↔ doctor messaging thread.
-4. Doctor consultation note templates + follow-up scheduling.
+1. Wire Stripe checkout for the 3 subscription tiers.
+2. Medication ordering + delivery/cold-chain tracking.
+3. Doctor note templates + reusable macros.
