@@ -12,7 +12,7 @@ from deps import (
 )
 from routers import auth, public, patient, diagnostics, messages, doctor, admin, ai, onboarding, seed as seed_router
 
-app = FastAPI(title="Verdia GLP-1 Care Platform API")
+app = FastAPI(title="vellora360 GLP-1 Care Platform API")
 
 # Single /api-prefixed router aggregating all feature routers.
 api_router = APIRouter(prefix="/api")
@@ -26,11 +26,17 @@ api_router.include_router(admin.router)
 api_router.include_router(ai.router)
 api_router.include_router(onboarding.router)
 api_router.include_router(seed_router.router)
+ping_router = APIRouter(prefix="/ping")
 
+@ping_router.get("")
+async def ping():
+    return {"message": "pong"}
+
+api_router.include_router(ping_router)
 
 @api_router.get("/")
 async def root():
-    return {"service": "GLP-1 Care Platform", "status": "ok"}
+    return {"service": "vellora360 GLP-1 Care Platform", "status": "ok"}
 
 
 app.include_router(api_router)

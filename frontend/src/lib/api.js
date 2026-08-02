@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 export const API = `${BACKEND_URL}/api`;
 
 export const api = axios.create({
@@ -8,6 +8,24 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+export const fetchAdminContactMessages = (skip = 0, limit = 10, topic = "", search = "", startDate = "", endDate = "", status = "", followUpDate = "") => {
+  let url = `/admin/contact-messages?skip=${skip}&limit=${limit}`;
+  if (topic) url += `&topic=${topic}`;
+  if (search) url += `&search=${search}`;
+  if (startDate) url += `&start_date=${startDate}`;
+  if (endDate) url += `&end_date=${endDate}`;
+  if (status) url += `&status=${status}`;
+  if (followUpDate) url += `&follow_up_date=${followUpDate}`;
+  return api.get(url).then(r => r.data);
+};
+
+export const updateContactStatus = (phone, status, note = "", followUpDate = "") => 
+  api.patch(`/admin/contact-messages/${phone}/status`, { 
+    status, 
+    note, 
+    follow_up_date: followUpDate 
+  }).then(r => r.data);
+  
 export const getMe = () => api.get("/auth/me").then(r => r.data);
 export const logout = () => api.post("/auth/logout");
 export const createSession = (session_id) => api.post("/auth/session", { session_id });

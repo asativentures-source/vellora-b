@@ -2,7 +2,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-
+from datetime import datetime
+import re
+from pydantic import field_validator
 from deps import db, uid, now_iso
 
 router = APIRouter()
@@ -44,18 +46,36 @@ async def platform_stats():
     return await db.platform_stats.find_one({}, {"_id": 0}) or {}
 
 
+import re
+from pydantic import field_validator
+
 class ContactCreate(BaseModel):
     name: str
-    email: str
-    message: str
+    email: Optional[str] = None
+    phone: str  
+    message: Optional[str] = None
     topic: Optional[str] = "general"
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        # Spaces aur symbols hata kar check karein ki sirf valid digits hain ya nahi
+        cleaned = re.sub(r'[\s\-\(\)]', '', v)
+        if not re.match(r'^\+?[0-9]{10,15}$', cleaned):
+            raise ValueError("Invalid phone number format.")
+        return v
+
 @router.post("/contact")
-async def submit_contact(c: ContactCreate):
-    doc = c.model_dump()
-    doc.update({"id": uid("msg"), "created_at": now_iso(), "status": "open"})
-    await db.contact_messages.insert_one(doc)
-    return {"ok": True, "id": doc["id"]}
+async def submit_contact_message(data: ContactCreate):
+    message_data = data.model_dump() # Pydantic v2 ke liye model_dump() use karein (ya dict())
+    message_data.update({
+        "id": uid("msg"), 
+        "status": "pending",  # <--- Default status pending set kar diya hai
+        "created_at": datetime.utcnow()
+    })
+    
+    await db.contact_messages.insert_one(message_data)
+    return {"success": True, "message": "Enquiry submitted successfully", "id": message_data["id"]}
 
 class NewsletterSub(BaseModel):
     email: str

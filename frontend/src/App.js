@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
 import LiveChatWidget from "@/components/LiveChatWidget";
 import "@/App.css";
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const About = lazy(() => import("@/pages/About"));
@@ -28,6 +29,8 @@ const DoctorDashboard = lazy(() => import("@/pages/DoctorDashboard"));
 const DoctorNotes = lazy(() => import("@/pages/DoctorNotes"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const Enquire = lazy(() => import("@/pages/Enquire"));
+const AdminMessages = lazy(() => import("@/pages/AdminMessages"));
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -42,7 +45,7 @@ function AppRouter() {
     );
   }
 
-  const isDashboard = ["/patient", "/doctor", "/admin", "/settings"].some((p) =>
+  const isDashboard = ["/patient", "/admin", "/settings"].some((p) =>
     location.pathname.startsWith(p)
   );
 
@@ -53,6 +56,7 @@ function AppRouter() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
+          <Route path="/enquire" element={<Enquire />} />
           <Route path="/programs" element={<Programs />} />
           <Route path="/programs/:slug" element={<ProgramDetail />} />
           <Route path="/doctors" element={<Doctors />} />
@@ -64,6 +68,7 @@ function AppRouter() {
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/login" element={<Login />} />
           <Route path="/auth-callback" element={<AuthCallback />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/patient"
             element={
@@ -77,6 +82,14 @@ function AppRouter() {
             element={
               <ProtectedRoute>
                 <PatientLabs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/messages"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminMessages />
               </ProtectedRoute>
             }
           />

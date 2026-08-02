@@ -1,0 +1,22 @@
+How to start this project
+
+Backend
+1. Open PowerShell in the backend folder.
+2. Activate the virtual environment:
+   .\.venv\Scripts\Activate.ps1
+3. Install backend packages:
+   python -m pip install -r requirements.txt
+4. Make sure backend/.env has MONGO_URL, DB_NAME, and JWT_SECRET.
+5. Start the backend:
+   python -m uvicorn server:app --app-dir . --reload --host 0.0.0.0 --port 8000
+
+Frontend
+1. Open PowerShell in the frontend folder.
+2. Install frontend packages:
+   npm install --legacy-peer-deps
+3. If the start fails with an ajv error, fix the frontend dependency pair:
+   npm install ajv@8.20.0 ajv-keywords@5.1.0 --legacy-peer-deps
+4. Set the backend URL:
+   $env:REACT_APP_BACKEND_URL="http://localhost:8000"
+5. Start the frontend:
+   npm --prefix C:\Users\adity\OneDrive\Desktop\AkashProject\vellora360\frontend start

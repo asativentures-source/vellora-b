@@ -27,7 +27,7 @@ export default function Footer() {
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white">
               <Activity size={18} />
             </div>
-            <span className="font-serif text-2xl">Verdia</span>
+            <span className="font-serif text-2xl">Velora360</span>
           </div>
           <p className="mt-4 text-slate-600 text-sm max-w-sm">
             Medically supervised GLP-1 care for lasting metabolic health. Board-certified physicians, personalized plans, sustainable outcomes.

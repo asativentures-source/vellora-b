@@ -14,10 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const links = [
   { to: "/programs", label: "Programs" },
-  { to: "/doctors", label: "Doctors" },
-  { to: "/pricing", label: "Pricing" },
+  //{ to: "/doctors", label: "Doctors" },
+  //{ to: "/pricing", label: "Pricing" },
   { to: "/blog", label: "Learn" },
   { to: "/about", label: "About" },
+  { to: "/enquire", label: "Enquire" },
 ];
 
 export default function Navbar() {
@@ -40,7 +41,7 @@ export default function Navbar() {
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white">
             <Activity size={18} strokeWidth={2.2} />
           </div>
-          <span className="font-serif text-2xl tracking-tight text-slate-900">Verdia</span>
+          <span className="font-serif text-2xl tracking-tight text-slate-900">Velora360</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -109,6 +110,8 @@ export default function Navbar() {
             >
               Sign in
             </Button>
+            
+            
           )}
         </div>
 

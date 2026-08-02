@@ -11,6 +11,7 @@ const links = [
   { to: "/admin", label: "Overview", icon: "LayoutDashboard" },
   { to: "/admin#users", label: "Users", icon: "Users" },
   { to: "/admin#doctors", label: "Doctors", icon: "ShieldCheck" },
+  { to: "/admin/messages", label: "Messages", icon: "MessageSquare" },
   { to: "/admin#orders", label: "Orders", icon: "ShoppingBag" },
   { to: "/admin#analytics", label: "Analytics", icon: "BarChart3" },
   { to: "/settings", label: "Settings", icon: "Settings" },
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
   const [appts, setAppts] = useState([]);
+
   useEffect(() => {
     fetchAdminStats().then(setStats).catch(() => {});
     fetchAdminUsers().then(setUsers).catch(() => {});
@@ -34,12 +36,11 @@ export default function AdminDashboard() {
 
   return (
     <DashboardShell title="Platform" links={links}>
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         {[
           { icon: Users, label: "Users", val: stats.users || 0 },
           { icon: Stethoscope, label: "Doctors", val: stats.doctors || 0 },
           { icon: Calendar, label: "Appointments", val: stats.appointments || 0 },
-          { icon: ShoppingBag, label: "Orders", val: stats.orders || 0 },
         ].map((k)=>(
           <Card key={k.label} className="rounded-2xl border-border/60 soft-shadow">
             <CardContent className="p-6">

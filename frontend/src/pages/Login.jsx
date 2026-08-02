@@ -77,28 +77,19 @@ export default function Login() {
       <Card className="rounded-3xl border-border/60 soft-shadow">
         <CardContent className="p-8">
           <div className="text-xs uppercase tracking-widest text-slate-500">Welcome</div>
-          <h1 className="font-serif text-4xl mt-2">Sign in to Verdia</h1>
-          <p className="text-slate-600 mt-2 text-sm">Access your dashboard, consultations, labs, and messages.</p>
-
-          <Button
-            onClick={google}
-            className="mt-6 w-full h-11 rounded-full bg-white hover:bg-slate-50 border border-border/70 text-slate-800 shadow-sm"
-            data-testid="google-signin-btn"
-          >
-            <GoogleLogo size={18} className="mr-2"/> Continue with Google
-          </Button>
-
+          <h1 className="font-serif text-4xl mt-2">Sign in to Vellora360</h1>
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-border/60"/>
-            <span className="text-xs uppercase tracking-widest text-slate-400">or with email</span>
+            <span className="text-xs uppercase tracking-widest text-slate-400">Sign in with email</span>
             <div className="flex-1 h-px bg-border/60"/>
           </div>
 
           <Tabs value={mode} onValueChange={(v)=>{ setMode(v); setError(""); }}>
-            <TabsList className="grid grid-cols-2 rounded-full bg-accent/60">
+             <TabsList className="grid grid-cols-2 rounded-full bg-accent/60">
               <TabsTrigger value="signin" className="rounded-full" data-testid="tab-signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup" className="rounded-full" data-testid="tab-signup">Create account</TabsTrigger>
             </TabsList>
+          
 
             <TabsContent value="signin" className="mt-5">
               <form onSubmit={doSignIn} className="space-y-3" data-testid="email-signin-form">
@@ -143,10 +134,6 @@ export default function Login() {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 space-y-1.5 text-xs text-slate-500">
-            <div className="flex items-center gap-2"><ShieldCheck size={13} className="text-primary"/> HIPAA-aware infrastructure</div>
-            <div className="flex items-center gap-2"><Lock size={13} className="text-primary"/> Session encrypted; sign-in expires in 12 hours</div>
-          </div>
         </CardContent>
       </Card>
 
