@@ -14,6 +14,23 @@ from routers import auth, public, patient, diagnostics, messages, doctor, admin,
 
 app = FastAPI(title="vellora360 GLP-1 Care Platform API")
 
+# Configure CORS carefully: if wildcard is used we must not enable
+# credentialed responses. Prefer explicit origins in production (e.g.
+# https://vellora360.com,https://www.vellora360.com).
+_allow_origins = CORS_ORIGINS
+if _allow_origins == ['*']:
+    _allow_credentials = False
+else:
+    _allow_credentials = True
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=_allow_credentials,
+    allow_origins=_allow_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Single /api-prefixed router aggregating all feature routers.
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
@@ -40,14 +57,6 @@ async def root():
 
 
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=CORS_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.on_event("startup")

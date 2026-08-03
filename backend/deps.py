@@ -17,7 +17,12 @@ load_dotenv(ROOT_DIR / '.env')
 # ---------- Config ----------
 MONGO_URL = os.environ['MONGO_URL']
 DB_NAME = os.environ['DB_NAME']
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
+_cors_env = os.environ.get('CORS_ORIGINS', '*')
+# split, strip and remove empty entries
+CORS_ORIGINS = [o.strip() for o in _cors_env.split(',') if o.strip()]
+# if nothing supplied, fall back to wildcard
+if not CORS_ORIGINS:
+    CORS_ORIGINS = ['*']
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 JWT_SECRET = os.environ['JWT_SECRET']
