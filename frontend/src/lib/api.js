@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL =
+  process.env.REACT_APP_BACKEND_URL ||
+  process.env.VITE_BACKEND_URL ||
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "https://your-railway-backend.up.railway.app");
 export const API = `${BACKEND_URL}/api`;
 
 export const api = axios.create({
