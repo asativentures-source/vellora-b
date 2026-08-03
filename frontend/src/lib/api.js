@@ -3,10 +3,14 @@ import axios from "axios";
 function normalizeBackendUrl(value) {
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value.replace(/\/$/, "");
+  // allow protocol-relative values like //host
+  if (/^\/\//.test(value)) return `https:${value.replace(/\/$/, "")}`;
+  // strip leading slashes then decide scheme
+  const stripped = value.replace(/^\/+/, "");
   if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    return `http://${value.replace(/^\/+/, "")}`;
+    return `http://${stripped}`;
   }
-  return `https://${value.replace(/^\/+/, "")}`;
+  return `https://${stripped}`;
 }
 
 const BACKEND_URL = normalizeBackendUrl(
@@ -14,7 +18,7 @@ const BACKEND_URL = normalizeBackendUrl(
     process.env.VITE_BACKEND_URL ||
     (typeof window !== "undefined" && window.location.hostname === "localhost"
       ? "http://localhost:8000"
-      : "your-railway-backend.up.railway.app"),
+      : "https://your-railway-backend.up.railway.app"),
 );
 export const API = `${BACKEND_URL}/api`;
 
