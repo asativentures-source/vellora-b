@@ -7,7 +7,8 @@ import { ArrowRight } from "lucide-react";
 
 export default function Programs() {
   const [items, setItems] = useState([]);
-  useEffect(() => { fetchPrograms().then(setItems).catch(() => {}); }, []);
+  useEffect(() => { fetchPrograms().then((items) => setItems(Array.isArray(items) ? items : [])).catch(() => {}); }, []);
+  const programItems = Array.isArray(items) ? items : [];
   return (
     <main className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24" data-testid="programs-page">
       <div className="max-w-3xl">
@@ -16,7 +17,7 @@ export default function Programs() {
         <p className="mt-4 text-slate-600 text-lg">Four physician-led pathways. Same clinical rigor, different focus.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-6 mt-12">
-        {items.map((p) => (
+        {programItems.map((p) => (
           <Card key={p.slug} className="overflow-hidden rounded-3xl border-border/60 soft-shadow soft-shadow-hover" data-testid={`program-${p.slug}`}>
             <div className="grid md:grid-cols-5">
               <div className="md:col-span-2">

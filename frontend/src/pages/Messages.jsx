@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -33,24 +33,26 @@ export default function Messages() {
   const scrollRef = useRef(null);
   const isDoctor = user?.role === "doctor" || user?.role === "admin";
 
-  const loadThreads = async () => {
+  const loadThreads = useCallback(async () => {
     const t = await api.get("/messages/threads").then(x=>x.data);
-    setThreads(t);
-    if (!selected && t.length) {
-      setSelected(t[0].other_user_id);
-      setSelectedName(t[0].other_name);
+    const threadList = Array.isArray(t) ? t : [];
+    setThreads(threadList);
+    if (!selected && threadList.length) {
+      setSelected(threadList[0].other_user_id);
+      setSelectedName(threadList[0].other_name);
     }
-  };
+  }, [selected]);
 
-  const loadContacts = async () => {
+  const loadContacts = useCallback(async () => {
     if (isDoctor) {
       const patients = await api.get("/doctor/dashboard").then(x=>x.data.patients);
-      setContacts(patients.map(p => ({ user_id: p.user_id, name: p.name })));
+      const patientList = Array.isArray(patients) ? patients : [];
+      setContacts(patientList.map(p => ({ user_id: p.user_id, name: p.name })));
     } else {
       // Patient can only reply to threads doctors initiate (contacts stay empty).
       setContacts([]);
     }
-  };
+  }, [isDoctor]);
 
   const loadThread = async (uid) => {
     const m = await api.get("/messages/thread", { params: { with_user_id: uid } }).then(x=>x.data);
@@ -58,7 +60,7 @@ export default function Messages() {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
   };
 
-  useEffect(() => { loadThreads(); loadContacts(); }, []);
+  useEffect(() => { loadThreads(); loadContacts(); }, [loadThreads, loadContacts]);
   useEffect(() => { if (selected) loadThread(selected); }, [selected]);
 
   const send = async (e) => {

@@ -15,14 +15,25 @@ const links = [
 
 export default function DoctorDashboard() {
   const [data, setData] = useState({ appointments: [], patients: [] });
-  useEffect(() => { fetchDoctorDashboard().then(setData).catch(() => {}); }, []);
+  useEffect(() => {
+    fetchDoctorDashboard()
+      .then((payload) => {
+        setData({
+          appointments: Array.isArray(payload?.appointments) ? payload.appointments : [],
+          patients: Array.isArray(payload?.patients) ? payload.patients : [],
+        });
+      })
+      .catch(() => {});
+  }, []);
+  const appointments = Array.isArray(data.appointments) ? data.appointments : [];
+  const patients = Array.isArray(data.patients) ? data.patients : [];
 
   return (
     <DashboardShell title="Clinic today" links={links}>
       <div className="grid md:grid-cols-3 gap-6">
         {[
-          { label: "Today's appointments", val: data.appointments.length, icon: Calendar },
-          { label: "Active patients", val: data.patients.length, icon: Users },
+          { label: "Today's appointments", val: appointments.length, icon: Calendar },
+          { label: "Active patients", val: patients.length, icon: Users },
           { label: "Pending notes", val: 3, icon: FileText },
         ].map((k)=>(
           <Card key={k.label} className="rounded-2xl border-border/60 soft-shadow">
@@ -40,8 +51,8 @@ export default function DoctorDashboard() {
           <CardContent className="p-6">
             <div className="font-serif text-2xl">Schedule</div>
             <div className="mt-4 divide-y divide-border/60">
-              {data.appointments.length === 0 && <div className="text-sm text-slate-500 py-8 text-center">No appointments yet.</div>}
-              {data.appointments.map((a) => (
+              {appointments.length === 0 && <div className="text-sm text-slate-500 py-8 text-center">No appointments yet.</div>}
+              {appointments.map((a) => (
                 <div key={a.id} className="py-3 flex items-center justify-between" data-testid={`doc-appt-${a.id}`}>
                   <div>
                     <div className="font-medium">{a.patient_name}</div>
@@ -58,7 +69,7 @@ export default function DoctorDashboard() {
           <CardContent className="p-6">
             <div className="font-serif text-2xl">Recent patients</div>
             <div className="mt-4 space-y-3">
-              {data.patients.slice(0,6).map((p) => (
+              {patients.slice(0,6).map((p) => (
                 <div key={p.user_id} className="flex items-center gap-3">
                   <Avatar className="h-9 w-9"><AvatarImage src={p.picture}/><AvatarFallback>{p.name[0]}</AvatarFallback></Avatar>
                   <div className="flex-1 min-w-0">
@@ -67,7 +78,7 @@ export default function DoctorDashboard() {
                   </div>
                 </div>
               ))}
-              {data.patients.length === 0 && <div className="text-sm text-slate-500">No patients yet.</div>}
+              {patients.length === 0 && <div className="text-sm text-slate-500">No patients yet.</div>}
             </div>
           </CardContent>
         </Card>

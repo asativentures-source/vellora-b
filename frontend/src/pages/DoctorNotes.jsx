@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,7 @@ export default function DoctorNotes() {
   const [form, setForm] = useState({ patient_id: "", subjective: "", objective: "", assessment: "", plan: "", follow_up_at: "" });
   const [selectedPatient, setSelectedPatient] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const d = await api.get("/doctor/dashboard").then(x=>x.data);
     setPatients(d.patients || []);
     const n = await api.get("/doctor/notes").then(x=>x.data);
@@ -31,8 +31,8 @@ export default function DoctorNotes() {
     const params = selectedPatient && selectedPatient !== "__all__" ? { patient_id: selectedPatient } : {};
     const r = await api.get("/doctor/lab-reports", { params }).then(x=>x.data);
     setReports(r);
-  };
-  useEffect(() => { load(); }, [selectedPatient]);
+  }, [selectedPatient]);
+  useEffect(() => { load(); }, [load]);
 
   const submit = async () => {
     if (!form.patient_id) { toast.error("Choose a patient"); return; }

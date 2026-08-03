@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import { fetchAdminContactMessages, updateContactStatus } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function AdminMessages() {
 
   const limit = 10;
 
-  const loadMessages = async (currentSkip, isAppending = false, search = activeSearch, start = activeStart, end = activeEnd, status = activeStatus) => {
+  const loadMessages = useCallback(async (currentSkip, isAppending = false, search = activeSearch, start = activeStart, end = activeEnd, status = activeStatus) => {
     try {
       setLoadingMore(true);
       const data = await fetchAdminContactMessages(currentSkip, limit, "", search, start, end, status);
@@ -59,12 +59,12 @@ export default function AdminMessages() {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [activeSearch, activeStart, activeEnd, activeStatus, limit]);
 
   useEffect(() => {
     setSkip(0);
     loadMessages(0, false, activeSearch, activeStart, activeEnd, activeStatus);
-  }, [activeSearch, activeStart, activeEnd, activeStatus]);
+  }, [activeSearch, activeStart, activeEnd, activeStatus, loadMessages]);
 
   const handleSearchClick = () => {
     setActiveSearch(searchInput);

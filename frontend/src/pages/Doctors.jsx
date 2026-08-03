@@ -9,8 +9,9 @@ import { Link } from "react-router-dom";
 export default function Doctors() {
   const [docs, setDocs] = useState([]);
   const [q, setQ] = useState("");
-  useEffect(() => { fetchDoctors().then(setDocs); }, []);
-  const filtered = docs.filter((d) =>
+  useEffect(() => { fetchDoctors().then((d) => setDocs(Array.isArray(d) ? d : [])).catch(() => {}); }, []);
+  const doctorList = Array.isArray(docs) ? docs : [];
+  const filtered = doctorList.filter((d) =>
     !q || d.name.toLowerCase().includes(q.toLowerCase()) || d.specialty.toLowerCase().includes(q.toLowerCase())
   );
   return (

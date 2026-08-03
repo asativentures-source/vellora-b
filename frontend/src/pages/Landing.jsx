@@ -53,12 +53,17 @@ export default function Landing() {
   const [faqs, setFaqs] = useState([]);
   const [plans, setPlans] = useState([]);
 
+  const doctorPreview = Array.isArray(doctors) ? doctors.slice(0, 4) : [];
+  const testimonialList = Array.isArray(testimonials) ? testimonials : [];
+  const faqList = Array.isArray(faqs) ? faqs : [];
+  const planList = Array.isArray(plans) ? plans : [];
+
   useEffect(() => {
     fetchStats().then(setStats).catch(() => {});
-    fetchDoctors().then((d) => setDoctors(d.slice(0, 3))).catch(() => {});
-    fetchTestimonials().then(setTestimonials).catch(() => {});
-    fetchFaqs().then(setFaqs).catch(() => {});
-    fetchPlans().then(setPlans).catch(() => {});
+    fetchDoctors().then((d) => setDoctors(Array.isArray(d) ? d.slice(0, 3) : [])).catch(() => {});
+    fetchTestimonials().then((d) => setTestimonials(Array.isArray(d) ? d : [])).catch(() => {});
+    fetchFaqs().then((d) => setFaqs(Array.isArray(d) ? d : [])).catch(() => {});
+    fetchPlans().then((d) => setPlans(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   return (
@@ -91,7 +96,7 @@ export default function Landing() {
             </div>
             <div className="mt-10 flex items-center gap-6">
               <div className="flex -space-x-3">
-                {doctors.slice(0,4).map((d) => (
+                {doctorPreview.map((d) => (
                   <Avatar key={d.doctor_id} className="border-2 border-white h-10 w-10">
                     <AvatarImage src={d.picture} />
                     <AvatarFallback>{d.name?.[0]}</AvatarFallback>
@@ -229,7 +234,7 @@ export default function Landing() {
           <div className="text-xs uppercase tracking-widest text-slate-500">Patient stories</div>
           <h2 className="font-serif text-4xl md:text-5xl mt-2 max-w-3xl">Progress, in their own words.</h2>
           <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {testimonials.map((t)=>(
+            {testimonialList.map((t)=>(
               <Card key={t.id} className="rounded-2xl border-border/60 soft-shadow">
                 <CardContent className="p-6">
                   <Badge className="rounded-full bg-accent text-primary hover:bg-accent">{t.program}</Badge>
@@ -254,7 +259,7 @@ export default function Landing() {
           <div className="text-xs uppercase tracking-widest text-slate-500">Plans</div>
           <h2 className="font-serif text-4xl md:text-5xl mt-2">Transparent pricing. No surprises.</h2>
           <div className="mt-10 grid md:grid-cols-3 gap-6">
-            {plans.map((p)=>(
+            {planList.map((p)=>(
               <Card key={p.code} className={`rounded-3xl soft-shadow ${p.highlight ? "border-primary border-2" : "border-border/60"}`}>
                 <CardContent className="p-8">
                   <div className="flex items-center justify-between">
@@ -287,7 +292,7 @@ export default function Landing() {
           <div className="text-xs uppercase tracking-widest text-primary">Questions</div>
           <h2 className="font-serif text-4xl md:text-5xl mt-2">Frequently asked</h2>
           <Accordion type="single" collapsible className="mt-8">
-            {faqs.map((f, i) => (
+            {faqList.map((f, i) => (
               <AccordionItem key={i} value={`f-${i}`} className="border-b border-border/60">
                 <AccordionTrigger className="text-left font-medium text-slate-800" data-testid={`faq-trigger-${i}`}>{f.q}</AccordionTrigger>
                 <AccordionContent className="text-slate-600">{f.a}</AccordionContent>

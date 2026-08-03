@@ -30,9 +30,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminStats().then(setStats).catch(() => {});
-    fetchAdminUsers().then(setUsers).catch(() => {});
-    fetchAdminAppointments().then(setAppts).catch(() => {});
+    fetchAdminUsers().then((u) => setUsers(Array.isArray(u) ? u : [])).catch(() => {});
+    fetchAdminAppointments().then((a) => setAppts(Array.isArray(a) ? a : [])).catch(() => {});
   }, []);
+
+  const userList = Array.isArray(users) ? users : [];
+  const apptList = Array.isArray(appts) ? appts : [];
 
   return (
     <DashboardShell title="Platform" links={links}>
@@ -74,7 +77,7 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="font-serif text-2xl">Recent users</div>
             <div className="mt-4 divide-y divide-border/60">
-              {users.slice(0,8).map((u) => (
+              {userList.slice(0,8).map((u) => (
                 <div key={u.user_id} className="py-3 flex items-center gap-3">
                   <Avatar className="h-9 w-9"><AvatarImage src={u.picture}/><AvatarFallback>{u.name?.[0]}</AvatarFallback></Avatar>
                   <div className="flex-1 min-w-0">
@@ -84,7 +87,7 @@ export default function AdminDashboard() {
                   <Badge className="rounded-full bg-accent text-primary hover:bg-accent capitalize">{u.role}</Badge>
                 </div>
               ))}
-              {users.length === 0 && <div className="text-sm text-slate-500 py-6">No users yet.</div>}
+              {userList.length === 0 && <div className="text-sm text-slate-500 py-6">No users yet.</div>}
             </div>
           </CardContent>
         </Card>
@@ -92,13 +95,13 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="font-serif text-2xl">Latest appointments</div>
             <div className="mt-4 divide-y divide-border/60">
-              {appts.slice(0,8).map((a) => (
+              {apptList.slice(0,8).map((a) => (
                 <div key={a.id} className="py-3">
                   <div className="text-sm font-medium">{a.patient_name} → {a.doctor_name}</div>
                   <div className="text-xs text-slate-500">{new Date(a.scheduled_at).toLocaleString()} · {a.reason}</div>
                 </div>
               ))}
-              {appts.length === 0 && <div className="text-sm text-slate-500 py-6">No appointments yet.</div>}
+              {apptList.length === 0 && <div className="text-sm text-slate-500 py-6">No appointments yet.</div>}
             </div>
           </CardContent>
         </Card>

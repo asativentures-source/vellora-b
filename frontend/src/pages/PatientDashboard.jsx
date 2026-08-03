@@ -49,13 +49,27 @@ export default function PatientDashboard() {
   const [ap, setAp] = useState({ doctor_id: "", scheduled_at: "", reason: "" });
   const [g, setG] = useState({ title: "", target: "", due_date: "" });
 
-  const load = () => fetchPatientDashboard().then(setData).catch(() => {});
-  useEffect(() => { load(); fetchDoctors().then(setDoctors); }, []);
+  const load = () =>
+    fetchPatientDashboard()
+      .then((payload) => {
+        setData({
+          metrics: Array.isArray(payload?.metrics) ? payload.metrics : [],
+          appointments: Array.isArray(payload?.appointments) ? payload.appointments : [],
+          medications: Array.isArray(payload?.medications) ? payload.medications : [],
+          goals: Array.isArray(payload?.goals) ? payload.goals : [],
+        });
+      })
+      .catch(() => {});
+  useEffect(() => { load(); fetchDoctors().then((docs) => setDoctors(Array.isArray(docs) ? docs : [])).catch(() => {}); }, []);
 
-  const latest = data.metrics[data.metrics.length - 1] || {};
-  const first = data.metrics[0] || {};
+  const metrics = Array.isArray(data.metrics) ? data.metrics : [];
+  const appointments = Array.isArray(data.appointments) ? data.appointments : [];
+  const goals = Array.isArray(data.goals) ? data.goals : [];
+
+  const latest = metrics[metrics.length - 1] || {};
+  const first = metrics[0] || {};
   const weightDelta = latest.weight_kg && first.weight_kg ? (latest.weight_kg - first.weight_kg).toFixed(1) : null;
-  const chartData = data.metrics
+  const chartData = metrics
     .filter((m) => m.weight_kg)
     .map((m) => ({ date: new Date(m.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }), weight: m.weight_kg, waist: m.waist_cm }));
 
@@ -183,8 +197,8 @@ export default function PatientDashboard() {
               <div className="font-serif text-2xl">Upcoming consultations</div>
             </div>
             <div className="mt-4 space-y-3">
-              {data.appointments.length === 0 && <div className="text-sm text-slate-500">No appointments yet. Book your first consultation.</div>}
-              {data.appointments.map((a) => (
+              {appointments.length === 0 && <div className="text-sm text-slate-500">No appointments yet. Book your first consultation.</div>}
+              {appointments.map((a) => (
                 <div key={a.id} className="flex items-center justify-between border-b border-border/60 pb-3">
                   <div>
                     <div className="font-medium">{a.doctor_name}</div>
@@ -217,8 +231,8 @@ export default function PatientDashboard() {
               </Dialog>
             </div>
             <div className="mt-4 space-y-3">
-              {data.goals.length === 0 && <div className="text-sm text-slate-500">Set a goal to keep momentum.</div>}
-              {data.goals.map((gl) => (
+              {goals.length === 0 && <div className="text-sm text-slate-500">Set a goal to keep momentum.</div>}
+              {goals.map((gl) => (
                 <div key={gl.id} className="flex items-center gap-3 border-b border-border/60 pb-3">
                   <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-primary"><Target size={16}/></div>
                   <div className="flex-1">

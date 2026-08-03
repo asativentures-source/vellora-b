@@ -16,7 +16,8 @@ const rows = [
 
 export default function Pricing() {
   const [plans, setPlans] = useState([]);
-  useEffect(() => { fetchPlans().then(setPlans); }, []);
+  useEffect(() => { fetchPlans().then((plans) => setPlans(Array.isArray(plans) ? plans : [])).catch(() => {}); }, []);
+  const planList = Array.isArray(plans) ? plans : [];
   return (
     <main className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24" data-testid="pricing-page">
       <div className="max-w-3xl">
@@ -26,7 +27,7 @@ export default function Pricing() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mt-12">
-        {plans.map((p) => (
+        {planList.map((p) => (
           <Card key={p.code} className={`rounded-3xl soft-shadow ${p.highlight ? "border-primary border-2" : "border-border/60"}`} data-testid={`plan-${p.code}`}>
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
@@ -47,7 +48,7 @@ export default function Pricing() {
       <div className="mt-16 rounded-3xl bg-white border border-border/60 soft-shadow overflow-hidden">
         <div className="grid grid-cols-4 text-sm">
           <div className="p-5 bg-accent/50 font-medium text-primary">Compare features</div>
-          {plans.map((p) => <div key={p.code} className="p-5 bg-accent/50 font-medium text-primary text-center">{p.name}</div>)}
+          {planList.map((p) => <div key={p.code} className="p-5 bg-accent/50 font-medium text-primary text-center">{p.name}</div>)}
           {rows.map((r, i) => (
             <div key={i} className="contents">
               <div className="p-5 border-t border-border/60 text-slate-700">{r[0]}</div>
