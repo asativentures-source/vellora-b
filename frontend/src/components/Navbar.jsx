@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, Activity } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,17 +13,20 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const links = [
+  { to: "/enquire", label: "Enquire" },
   { to: "/programs", label: "Programs" },
   //{ to: "/doctors", label: "Doctors" },
   //{ to: "/pricing", label: "Pricing" },
   { to: "/blog", label: "Learn" },
   { to: "/about", label: "About" },
-  { to: "/enquire", label: "Enquire" },
+  { to: "/MechanismOfAction", label: "Mechanism of Action" },
 ];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -34,8 +37,29 @@ export default function Navbar() {
     nav("/login");
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollYRef.current) {
+        // Scrolling down
+        setNavbarVisible(false);
+      } else {
+        // Scrolling up
+        setNavbarVisible(true);
+      }
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="glass-nav sticky top-0 z-50" data-testid="site-navbar">
+    <header 
+      className={`glass-nav sticky top-0 z-50 transition-transform duration-300 ${navbarVisible ? 'translate-y-0' : '-translate-y-full'}`}
+      data-testid="site-navbar"
+    >
       <div className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group" data-testid="brand-link">
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white">

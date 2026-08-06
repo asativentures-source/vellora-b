@@ -31,6 +31,7 @@ const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Enquire = lazy(() => import("@/pages/Enquire"));
 const AdminMessages = lazy(() => import("@/pages/AdminMessages"));
+const MechanismOfAction = lazy(() => import("@/pages/MechanismOfAction"));
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -56,6 +57,8 @@ function AppRouter() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
+          <Route path="/mechanism-of-action" element={<MechanismOfAction />} />
+          <Route path="/MechanismOfAction" element={<MechanismOfAction />} />
           <Route path="/enquire" element={<Enquire />} />
           <Route path="/programs" element={<Programs />} />
           <Route path="/programs/:slug" element={<ProgramDetail />} />

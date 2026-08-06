@@ -1,0 +1,211 @@
+.container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #ffffff 0%, transparent 40%), radial-gradient(circle at bottom right, #dde7ff 0%, transparent 35%), linear-gradient(135deg, #edf2ff, #cfdfff);
+  overflow-x: hidden;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.lottieBackgroundContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity, filter;
+}
+
+.videoOverlayDimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.contentOverlayTrack {
+  position: relative;
+  z-index: 10;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 60px 20px;
+}
+
+.introHeader {
+  z-index: 20;
+  text-align: center;
+  margin-bottom: 50px;
+  animation: fadeInDown 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 20px 20px;
+  background: linear-gradient(135deg, 
+#3c6d57 0%, rgba(102, 177, 102, 0.98) 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #3c6d57;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 15px 45px rgba(0, 0, 0, 0.12), 0 45px 90px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.hideIntroHeader {
+  transform: translateY(-100%);
+}
+
+.introHeader h2 {
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -3px;
+  line-height: 1.1;
+  text-shadow: none;
+}
+
+.sceneBlock {
+  margin: 160px 0;
+  opacity: 0.18;
+  transform: translateY(80px) scale(0.92);
+  filter: blur(8px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), filter 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity, filter;
+}
+
+.sceneBlock.activeScene {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+.glassCard {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 30px;
+  padding: 48px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 15px 45px rgba(0, 0, 0, 0.12), 0 45px 90px rgba(0, 0, 0, 0.08);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.8s cubic-bezier(0.22, 1, 0.36, 1), background 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity, filter;
+}
+
+.glassCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transform: translateX(-150%);
+  transition: 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.glassCard:hover {
+  transform: translateY(-10px) scale(1.015);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 35px 70px rgba(0, 0, 0, 0.18);
+}
+
+.glassCard:hover::before {
+  transform: translateX(150%);
+}
+
+.sceneLabel {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  opacity: 0;
+  transform: translateY(25px);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sceneTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: white;
+  margin: 16px 0;
+  opacity: 0;
+  transform: translateY(25px);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sceneDesc {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+  opacity: 0;
+  transform: translateY(25px);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.activeScene .sceneLabel {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.05s;
+}
+
+.activeScene .sceneTitle {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.15s;
+}
+
+.activeScene .sceneDesc {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.28s;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .introHeader {
+    padding: 50px 20px;
+  }
+
+  .glassCard {
+    padding: 32px 24px;
+    border-radius: 24px;
+  }
+
+  .sceneTitle {
+    font-size: 1.5rem;
+  }
+
+  .sceneDesc {
+    font-size: 0.95rem;
+  }
+
+  .sceneBlock {
+    margin: 100px 0;
+  }
+}
