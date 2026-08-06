@@ -1,211 +1,265 @@
-.container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  background: radial-gradient(circle at top left, #ffffff 0%, transparent 40%), radial-gradient(circle at bottom right, #dde7ff 0%, transparent 35%), linear-gradient(135deg, #edf2ff, #cfdfff);
-  overflow-x: hidden;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+/* MechanismOfAction.module.css */
+
+:root {
+    --bg-light: #ffffff;
+    --card-bg: #f8faf9;
+    --text-primary: #1e2923;
+    --text-secondary: #5a6860;
+    --brand-primary: #3c6d57;
+    --brand-primary-light: rgba(60, 109, 87, 0.12);
+    --brand-primary-border: rgba(60, 109, 87, 0.2);
+    --card-shadow: 0 15px 35px rgba(60, 109, 87, 0.08);
+    --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lottieBackgroundContainer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform, opacity, filter;
+.outerWrapper {
+    background-color: var(--bg-light);
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    padding-top: 120px; /* Safe padding so it never overlaps with fixed top navbars */
+    padding-bottom: 100px;
+    overflow-x: hidden;
 }
 
-.videoOverlayDimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1;
-  pointer-events: none;
+/* Static Header Section */
+.staticHeaderContainer {
+    max-width: 800px;
+    margin: 0 auto 80px auto;
+    padding: 0 24px;
+    text-align: center;
 }
 
-.contentOverlayTrack {
-  position: relative;
-  z-index: 10;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 60px 20px;
+.subHeadingBadge {
+    display: inline-block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: var(--brand-primary-light);
+    color: var(--brand-primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    font-weight: 600;
 }
 
-.introHeader {
-  z-index: 20;
-  text-align: center;
-  margin-bottom: 50px;
-  animation: fadeInDown 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-  padding: 20px 20px;
-  background: linear-gradient(135deg, 
-#3c6d57 0%, rgba(102, 177, 102, 0.98) 100%);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid #3c6d57;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 15px 45px rgba(0, 0, 0, 0.12), 0 45px 90px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease-in-out;
-  transform: translateY(0);
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform, opacity;
+.staticHeaderContainer h2 {
+    font-size: 3rem;
+    margin: 0 0 15px 0;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
 }
 
-.hideIntroHeader {
-  transform: translateY(-100%);
+.headerSubtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-.introHeader h2 {
-  font-size: clamp(3rem, 6vw, 5.5rem);
-  font-weight: 900;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  letter-spacing: -3px;
-  line-height: 1.1;
-  text-shadow: none;
+/* Timeline / Tree Structure Layout */
+.timelineContainer {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    padding: 0 40px;
 }
 
-.sceneBlock {
-  margin: 160px 0;
-  opacity: 0.18;
-  transform: translateY(80px) scale(0.92);
-  filter: blur(8px);
-  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), filter 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity, filter;
+/* Central Branch Line (Tree Trunk style) */
+.centralBranchLine {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    transform: translateX(-50%);
+    background: linear-gradient(
+        to bottom, 
+        rgba(60, 109, 87, 0.15), 
+        var(--brand-primary), 
+        rgba(60, 109, 87, 0.15)
+    );
+    z-index: 1;
 }
 
-.sceneBlock.activeScene {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
+.scenesWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 120px; /* Space between each step on the tree */
+    position: relative;
+    z-index: 2;
 }
 
+/* Individual Tree Nodes */
+.timelineNode {
+    display: flex;
+    width: 100%;
+    position: relative;
+    opacity: 0.4;
+    transform: translateY(40px);
+    transition: var(--transition-smooth);
+}
+
+.timelineNode.activeNode {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Alternating Layout (Zig-Zag Tree Branching) */
+.nodeLeft {
+    justify-content: flex-start;
+}
+
+.nodeRight {
+    justify-content: flex-end;
+}
+
+/* Central Marker Icon */
+.nodeMarker {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    background: #ffffff;
+    border: 2px solid var(--brand-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(60, 109, 87, 0.2);
+    z-index: 3;
+}
+
+.markerIcon {
+    font-size: 1.4rem;
+}
+
+.markerPulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--brand-primary);
+    animation: pulseRing 2s infinite;
+    opacity: 0;
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+/* Glass Card Styling */
 .glassCard {
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 30px;
-  padding: 48px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 15px 45px rgba(0, 0, 0, 0.12), 0 45px 90px rgba(0, 0, 0, 0.08);
-  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.8s cubic-bezier(0.22, 1, 0.36, 1), background 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform, opacity, filter;
+    background: var(--card-bg);
+    border: 1px solid var(--brand-primary-border);
+    border-radius: 24px;
+    padding: 35px;
+    width: 42%; /* Sized to fit cleanly on left/right of center line */
+    box-shadow: var(--card-shadow);
+    color: var(--text-primary);
+    transition: var(--transition-smooth);
 }
 
-.glassCard::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-  transform: translateX(-150%);
-  transition: 1.2s cubic-bezier(0.22, 1, 0.36, 1);
-  pointer-events: none;
+.activeNode .glassCard {
+    border-color: var(--brand-primary);
+    box-shadow: 0 20px 40px rgba(60, 109, 87, 0.12), 0 0 20px rgba(60, 109, 87, 0.05);
 }
 
-.glassCard:hover {
-  transform: translateY(-10px) scale(1.015);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 35px 70px rgba(0, 0, 0, 0.18);
-}
-
-.glassCard:hover::before {
-  transform: translateX(150%);
+.cardHeaderMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
 }
 
 .sceneLabel {
-  display: inline-block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.2);
-  padding: 6px 12px;
-  border-radius: 20px;
-  margin-bottom: 12px;
-  opacity: 0;
-  transform: translateY(25px);
-  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.sceneHighlight {
+    font-size: 0.85rem;
+    color: var(--brand-primary);
+    background: var(--brand-primary-light);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 500;
 }
 
 .sceneTitle {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: white;
-  margin: 16px 0;
-  opacity: 0;
-  transform: translateY(25px);
-  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    font-size: 1.8rem;
+    margin: 0 0 12px 0;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text-primary);
 }
 
 .sceneDesc {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.95);
-  opacity: 0;
-  transform: translateY(25px);
-  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 20px 0;
 }
 
-.activeScene .sceneLabel {
-  opacity: 1;
-  transform: none;
-  transition-delay: 0.05s;
+.cardFooterIndicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--brand-primary);
+    font-weight: 500;
+    border-top: 1px solid var(--brand-primary-border);
+    padding-top: 15px;
 }
 
-.activeScene .sceneTitle {
-  opacity: 1;
-  transform: none;
-  transition-delay: 0.15s;
+.indicatorDot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--brand-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(60, 109, 87, 0.4);
 }
 
-.activeScene .sceneDesc {
-  opacity: 1;
-  transform: none;
-  transition-delay: 0.28s;
-}
+/* Responsive Breakdown for Tablets and Mobile Devices */
+@media (max-width: 900px) {
+    .centralBranchLine {
+        left: 30px; /* Shift tree trunk to the left side on smaller screens */
+    }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+    .timelineContainer {
+        padding: 0 20px;
+    }
 
-@media (max-width: 768px) {
-  .introHeader {
-    padding: 50px 20px;
-  }
+    .timelineNode {
+        justify-content: flex-end !important; /* Stack all cards to the right of trunk */
+    }
 
-  .glassCard {
-    padding: 32px 24px;
-    border-radius: 24px;
-  }
+    .nodeMarker {
+        left: 30px; /* Align nodes to the left trunk */
+        width: 45px;
+        height: 45px;
+    }
 
-  .sceneTitle {
-    font-size: 1.5rem;
-  }
+    .markerIcon {
+        font-size: 1.1rem;
+    }
 
-  .sceneDesc {
-    font-size: 0.95rem;
-  }
+    .glassCard {
+        width: calc(100% - 65px); /* Take remaining width */
+        padding: 25px;
+    }
 
-  .sceneBlock {
-    margin: 100px 0;
-  }
+    .staticHeaderContainer h2 {
+        font-size: 2.2rem;
+    }
 }

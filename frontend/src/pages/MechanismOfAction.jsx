@@ -1,127 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
-import lottie from 'lottie-web';
 import styles from './MechanismOfAction.module.css';
 
 const scenes = [
   {
     id: 'brain',
-    label: 'Brain',
+    label: 'Phase 01',
+    highlight: 'Neural Circuitry',
     title: 'Appetite Control',
     description:
       'GLP-1 acts on your brain to mute "food noise" - that constant urge to eat. It signals fullness to your hypothalamus, helping you feel satisfied with smaller portions and reducing cravings naturally.',
+    icon: '🧠',
   },
   {
     id: 'stomach',
-    label: 'Stomach',
+    label: 'Phase 02',
+    highlight: 'Gastric Motility',
     title: 'Digestive Harmony',
     description:
       'By slowing gastric emptying, GLP-1 keeps food in your stomach longer, creating sustained fullness and satisfaction. This gradual digestion prevents blood sugar spikes and keeps energy stable throughout the day.',
+    icon: '🍃',
   },
   {
     id: 'pancreas',
-    label: ' Pancreas',
-    title: 'Blood Sugar Balance',
+    label: 'Phase 03',
+    highlight: 'Metabolic Balance',
+    title: 'Blood Sugar Regulation',
     description:
       "GLP-1 stimulates your pancreas to release insulin only when blood sugar rises, preventing dangerous spikes. This glucose-dependent mechanism works with your body's natural rhythm for safe, effective regulation.",
+    icon: '⚡',
   },
 ];
 
 function MechanismOfAction() {
-  const containerRef = useRef(null);
-  const animRef = useRef(null);
   const mainContainerRef = useRef(null);
   const sceneRefs = useRef({});
-  const [activeScene, setActiveScene] = useState(null);
-  const [isAnimationReady, setIsAnimationReady] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const lastScrollYRef = useRef(0);
+  const [activeScene, setActiveScene] = useState(scenes[0].id);
 
-  useEffect(() => {
-  if (!containerRef.current) return;
-
-  const anim = lottie.loadAnimation({
-    container: containerRef.current,
-    renderer: 'svg',
-    loop: false,
-    autoplay: false,
-    path: '/animations/mechanism.json',
-    rendererSettings: {
-      preserveAspectRatio: 'xMidYMid slice',
-      clearCanvas: true,
-    },
-  });
-
-  anim.addEventListener('DOMLoaded', () => {
-    setIsAnimationReady(true);
-    anim.resize();
-  });
-
-  animRef.current = anim;
-
-  const handleResize = () => {
-    anim.resize();
-  };
-
-  window.addEventListener('resize', handleResize);
-
-  return () => {
-    window.removeEventListener('resize', handleResize);
-    anim.destroy();
-  };
-}, []);
-
-  useEffect(() => {
-    if (!animRef.current || !isAnimationReady) return;
-
-    let animationFrameId = null;
-    let currentFrame = 0;
-    let targetFrame = 0;
-
-    const handleScroll = () => {
-      if (!mainContainerRef.current || !animRef.current) return;
-
-      const scrollContainer = mainContainerRef.current;
-      const scrollHeight = scrollContainer.scrollHeight - window.innerHeight;
-      const scrolled = window.scrollY;
-      const scrollProgress =
-        scrollHeight > 0 ? Math.min(Math.max(scrolled / scrollHeight, 0), 1) : 0;
-
-      const totalFrames = animRef.current.totalFrames || 120;
-      const slowedProgress = scrollProgress * 0.9;
-      targetFrame = Math.floor(slowedProgress * (totalFrames - 1));
-
-      // Handle header visibility based on scroll direction
-      if (scrolled > lastScrollYRef.current) {
-        setHeaderVisible(false);
-      } else {
-        setHeaderVisible(true);
-      }
-      lastScrollYRef.current = scrolled;
-    };
-
-    const animate = () => {
-      if (Math.abs(currentFrame - targetFrame) > 0.5) {
-        currentFrame += (targetFrame - currentFrame) * 0.15;
-        animRef.current.goToAndStop(Math.round(currentFrame), true);
-        animationFrameId = requestAnimationFrame(animate);
-      }
-    };
-
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    const scrollAnimationFrame = () => {
-      animate();
-      animationFrameId = requestAnimationFrame(scrollAnimationFrame);
-    };
-    animationFrameId = requestAnimationFrame(scrollAnimationFrame);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-  }, [isAnimationReady]);
-
+  // Intersection Observer to track active cards during scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -131,7 +46,10 @@ function MechanismOfAction() {
           }
         });
       },
-      { threshold: 0.4 }
+      {
+        root: null,
+        threshold: 0.4,
+      }
     );
 
     scenes.forEach((scene) => {
@@ -143,36 +61,62 @@ function MechanismOfAction() {
   }, []);
 
   return (
-    <div className={styles.container} ref={mainContainerRef}>
-      <div className={styles.lottieBackgroundContainer} ref={containerRef} />
-      <div className={styles.videoOverlayDimmer} />
-
-      <div className={`${styles.introHeader} ${headerVisible ? '' : styles.hideIntroHeader}`}>
-        <h2>Why GLP-1 Therapy Works</h2>
+    <div className={styles.outerWrapper} ref={mainContainerRef}>
+      {/* Static Header Section - Matches clean white page theme */}
+      <div className={styles.staticHeaderContainer}>
+        <div className={styles.headerContentWrapper}>
+          <span className={styles.subHeadingBadge}>Molecular Precision</span>
+          <h2>How GLP-1 Therapy Works</h2>
+          <p className={styles.headerSubtitle}>
+            A scientific journey through your body's natural metabolic pathways.
+          </p>
+        </div>
       </div>
 
-      <div className={styles.contentOverlayTrack}>
+      {/* Modern Connected Tree / Timeline Flow Layout */}
+      <div className={styles.timelineContainer}>
+        <div className={styles.centralBranchLine} />
 
-        {scenes.map((scene) => (
-          <div
-            key={scene.id}
-            id={scene.id}
-            ref={(el) => {
-              sceneRefs.current[scene.id] = el;
-            }}
-            className={`${styles.sceneBlock} ${
-              activeScene === scene.id ? styles.activeScene : ''
-            }`}
-          >
-            <div className={styles.glassCard}>
-              <span className={styles.sceneLabel}>{scene.label}</span>
-              <h3 className={styles.sceneTitle}>{scene.title}</h3>
-              <p className={styles.sceneDesc}>{scene.description}</p>
-            </div>
-          </div>
-        ))}
+        <div className={styles.scenesWrapper}>
+          {scenes.map((scene, index) => {
+            const isActive = activeScene === scene.id;
+            const isEven = index % 2 === 0;
 
-        <div style={{ height: '20vh' }} />
+            return (
+              <div
+                key={scene.id}
+                id={scene.id}
+                ref={(el) => {
+                  sceneRefs.current[scene.id] = el;
+                }}
+                className={`${styles.timelineNode} ${
+                  isEven ? styles.nodeLeft : styles.nodeRight
+                } ${isActive ? styles.activeNode : ''}`}
+              >
+                {/* Glowing Node Marker on the Tree Line */}
+                <div className={styles.nodeMarker}>
+                  <span className={styles.markerIcon}>{scene.icon}</span>
+                  <div className={styles.markerPulse} />
+                </div>
+
+                {/* Content Card */}
+                <div className={styles.glassCard}>
+                  <div className={styles.cardHeaderMeta}>
+                    <span className={styles.sceneLabel}>{scene.label}</span>
+                    <span className={styles.sceneHighlight}>{scene.highlight}</span>
+                  </div>
+                  <h3 className={styles.sceneTitle}>{scene.title}</h3>
+                  <p className={styles.sceneDesc}>{scene.description}</p>
+                  
+                  <div className={styles.cardFooterIndicator}>
+                    <span className={styles.indicatorDot} />
+                    <span>Clinical Mechanism Verified</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
