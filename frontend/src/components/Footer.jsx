@@ -79,7 +79,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-border/60 py-6 text-xs text-slate-500 text-center">
-        © {new Date().getFullYear()} Verdia Health. Not a substitute for professional medical advice.
+        © {new Date().getFullYear()} Vellora360 Health. Not a substitute for professional medical advice.
       </div>
     </footer>
   );

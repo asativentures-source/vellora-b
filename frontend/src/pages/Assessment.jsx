@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 export default function Assessment() {
   const { user } = useAuth();
   const [msgs, setMsgs] = useState([
-    { role: "assistant", text: "Hi, I'm Aria — your Verdia care companion. Before we match you with a clinician, may I ask a few questions? First: what brings you here today (weight, energy, diabetes, PCOS, or something else)?" },
+    { role: "assistant", text: "Hi, I'm Aria — your Vellora360 care companion. Before we match you with a clinician, may I ask a few questions? First: what brings you here today (weight, energy, diabetes, PCOS, or something else)?" },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);

@@ -55,7 +55,7 @@ export default function Login() {
     setBusy(true);
     try {
       const { user } = await emailRegister(signUpForm);
-      toast.success(`Welcome to Verdia, ${user.name?.split(" ")[0] || ""}`);
+      toast.success(`Welcome to Vellora360, ${user.name?.split(" ")[0] || ""}`);
       await refresh();
       nav("/patient", { replace: true });
     } catch (err) {

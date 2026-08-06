@@ -7,7 +7,7 @@ import { aiAssessment } from "@/lib/api";
 export default function LiveChatWidget() {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([
-    { role: "assistant", text: "Hi! I'm Aria from Verdia. Ask me anything about GLP-1 care, eligibility, pricing, or booking." },
+    { role: "assistant", text: "Hi! I'm Aria from Vellora360. Ask me anything about GLP-1 care, eligibility, pricing, or booking." },
   ]);
   const [input, setInput] = useState("");
   const [sid, setSid] = useState(null);

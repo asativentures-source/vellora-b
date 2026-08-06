@@ -1,4 +1,4 @@
-"""Verdia GLP-1 Care Platform — FastAPI entrypoint.
+"""Vellora360 GLP-1 Care Platform — FastAPI entrypoint.
 
 All feature endpoints live in routers/*.py. This file wires the app, CORS,
 startup (seed data + indexes + admin owner), and shutdown."""

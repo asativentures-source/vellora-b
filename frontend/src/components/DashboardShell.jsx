@@ -15,7 +15,7 @@ export default function DashboardShell({ title, links, children }) {
       <aside className="w-64 shrink-0 border-r border-border/60 bg-white/60 backdrop-blur-md hidden md:flex flex-col">
         <Link to="/" className="flex items-center gap-2 px-6 h-16 border-b border-border/60">
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white"><Activity size={18}/></div>
-          <span className="font-serif text-2xl">Verdia</span>
+          <span className="font-serif text-2xl">Vellora360</span>
         </Link>
         <nav className="p-4 flex-1 space-y-1">
           {links.map((l) => {

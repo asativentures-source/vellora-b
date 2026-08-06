@@ -80,7 +80,7 @@ export default function Landing() {
               A calmer way to lose weight, backed by medicine.
             </h1>
             <p className="mt-6 text-slate-600 text-lg max-w-xl leading-relaxed">
-              Verdia is a clinician-led GLP-1 program for obesity, Type 2 diabetes, PCOS, and metabolic health. Personalized plans, real doctors, sustainable outcomes.
+              Vellora360 is a clinician-led GLP-1 program for obesity, Type 2 diabetes, PCOS, and metabolic health. Personalized plans, real doctors, sustainable outcomes.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/assessment">
@@ -184,7 +184,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="rounded-3xl bg-slate-900 text-white p-10 flex flex-col">
-            <div className="text-xs uppercase tracking-widest text-white/60">Why Verdia</div>
+            <div className="text-xs uppercase tracking-widest text-white/60">Why Vellora360</div>
             <h3 className="font-serif text-4xl mt-2">Real doctors. Real oversight.</h3>
             <ul className="mt-6 space-y-3 text-sm text-white/80">
               {["Board-certified endocrinologists, obesity medicine, PCOS specialists","Zero-guesswork protocols anchored in the latest evidence","Nutrition, movement and behavioral coaching included","Refill logistics with cold-chain handling"].map((t)=>(
@@ -307,7 +307,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 lg:px-8 rounded-[2rem] bg-slate-900 text-white p-12 md:p-16 relative overflow-hidden">
           <div className="max-w-2xl">
             <h2 className="font-serif text-4xl md:text-5xl">Your best chapter starts with a five-minute conversation.</h2>
-            <p className="mt-4 text-white/70">Speak with a Verdia clinician about GLP-1, PCOS, diabetes, or metabolic health.</p>
+            <p className="mt-4 text-white/70">Speak with a Vellora360 clinician about GLP-1, PCOS, diabetes, or metabolic health.</p>
             <Link to="/onboarding">
               <Button className="mt-8 rounded-full bg-emerald-400 hover:bg-emerald-300 text-slate-900 h-12 px-7" data-testid="cta-start-assessment">
                 Start free assessment <ArrowRight size={18} className="ml-1"/>

@@ -41,7 +41,7 @@ export default function Navbar() {
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white">
             <Activity size={18} strokeWidth={2.2} />
           </div>
-          <span className="font-serif text-2xl tracking-tight text-slate-900">Velora360</span>
+          <span className="font-serif text-2xl tracking-tight text-slate-900">Vellora360</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

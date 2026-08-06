@@ -19,10 +19,10 @@ export default function About() {
   return (
     <main className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24" data-testid="about-page">
       <div className="max-w-3xl">
-        <div className="text-xs uppercase tracking-widest text-slate-500">About Verdia</div>
+        <div className="text-xs uppercase tracking-widest text-slate-500">About Vellora360</div>
         <h1 className="font-serif text-5xl md:text-6xl mt-3">A medical home for metabolic health.</h1>
         <p className="mt-6 text-lg text-slate-600 leading-relaxed">
-          We built Verdia because millions of people navigating obesity, diabetes, and PCOS still feel unseen by traditional care.
+          We built Vellora360 because millions of people navigating obesity, diabetes, and PCOS still feel unseen by traditional care.
           Our mission is simple: bring together the best clinicians and the calmest technology, so your transformation feels supported — not performative.
         </p>
       </div>
