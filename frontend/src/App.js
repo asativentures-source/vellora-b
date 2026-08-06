@@ -9,7 +9,7 @@ import LiveChatWidget from "@/components/LiveChatWidget";
 import "@/App.css";
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
-const Landing = lazy(() => import("@/pages/Landing"));
+const Landing = lazy(() => import("@/pages/Enquire"));
 const About = lazy(() => import("@/pages/About"));
 const Programs = lazy(() => import("@/pages/Programs"));
 const ProgramDetail = lazy(() => import("@/pages/ProgramDetail"));
